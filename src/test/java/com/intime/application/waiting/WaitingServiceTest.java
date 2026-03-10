@@ -38,7 +38,7 @@ class WaitingServiceTest {
         @DisplayName("성공 : 첫 번째 대기표 등록 시 순번 1")
         void registerFirst() {
             // given
-            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, LocalDate.of(2026, 3, 11)))
+            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, LocalDate.now()))
                     .willReturn(Optional.empty());
             given(waitingTicketRepository.save(any(WaitingTicket.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -57,7 +57,7 @@ class WaitingServiceTest {
         void registerNext() {
             // given
             WaitingTicket existing = WaitingTicketFixture.createTicket(1L, 1L, 2L, 3, 2);
-            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, LocalDate.of(2026, 3, 11)))
+            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, LocalDate.now()))
                     .willReturn(Optional.of(existing));
             given(waitingTicketRepository.save(any(WaitingTicket.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
