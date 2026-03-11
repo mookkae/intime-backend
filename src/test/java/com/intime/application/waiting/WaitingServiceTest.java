@@ -10,8 +10,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +34,20 @@ class WaitingServiceTest {
     @Mock
     private WaitingTicketRepository waitingTicketRepository;
 
+    @Mock
+    private Clock clock;
+
+    private static final LocalDate FIXED_DATE = LocalDate.of(2026, 3, 11);
+    private static final Clock FIXED_CLOCK = Clock.fixed(
+            FIXED_DATE.atStartOfDay(ZoneId.of("Asia/Seoul")).toInstant(),
+            ZoneId.of("Asia/Seoul")
+    );
+
+    private void setupClock() {
+        given(clock.instant()).willReturn(FIXED_CLOCK.instant());
+        given(clock.getZone()).willReturn(FIXED_CLOCK.getZone());
+    }
+
     @Nested
     @DisplayName("register 메서드")
     class Register {
@@ -38,7 +56,8 @@ class WaitingServiceTest {
         @DisplayName("성공 : 첫 번째 대기표 등록 시 순번 1")
         void registerFirst() {
             // given
-            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, LocalDate.now()))
+            setupClock();
+            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, FIXED_DATE))
                     .willReturn(Optional.empty());
             given(waitingTicketRepository.save(any(WaitingTicket.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -56,8 +75,9 @@ class WaitingServiceTest {
         @DisplayName("성공 : 기존 대기표가 있으면 다음 순번 발급")
         void registerNext() {
             // given
+            setupClock();
             WaitingTicket existing = WaitingTicketFixture.createTicket(1L, 1L, 2L, 3, 2);
-            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, LocalDate.now()))
+            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, FIXED_DATE))
                     .willReturn(Optional.of(existing));
             given(waitingTicketRepository.save(any(WaitingTicket.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -67,6 +87,21 @@ class WaitingServiceTest {
 
             // then
             assertThat(result.getPositionNumber()).isEqualTo(4);
+        }
+
+        @Test
+        @DisplayName("실패 : 순번 충돌 시 등록 실패 예외")
+        void registerConflict() {
+            // given
+            setupClock();
+            given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, FIXED_DATE))
+                    .willReturn(Optional.empty());
+            given(waitingTicketRepository.save(any(WaitingTicket.class)))
+                    .willThrow(new DataIntegrityViolationException("Duplicate entry"));
+
+            // when & then
+            assertThatThrownBy(() -> waitingService.register(1L, 1L, 2))
+                    .isInstanceOf(BusinessException.class);
         }
     }
 

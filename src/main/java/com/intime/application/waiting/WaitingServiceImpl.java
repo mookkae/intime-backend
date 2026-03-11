@@ -3,9 +3,11 @@ package com.intime.application.waiting;
 import com.intime.common.exception.BusinessException;
 import com.intime.domain.waiting.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 
 @Service
@@ -14,17 +16,25 @@ import java.time.LocalDate;
 public class WaitingServiceImpl implements WaitingService {
 
     private final WaitingTicketRepository waitingTicketRepository;
+    private final Clock clock;
 
     @Override
     @Transactional
     public WaitingTicket register(Long storeId, Long memberId, int partySize) {
+        LocalDate today = LocalDate.now(clock);
+
         int nextPosition = waitingTicketRepository
-                .findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(storeId, LocalDate.now())
+                .findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(storeId, today)
                 .map(ticket -> ticket.getPositionNumber() + 1)
                 .orElse(1);
 
-        WaitingTicket ticket = WaitingTicket.create(storeId, memberId, nextPosition, partySize, LocalDate.now());
-        return waitingTicketRepository.save(ticket);
+        WaitingTicket ticket = WaitingTicket.create(storeId, memberId, nextPosition, partySize, today);
+
+        try {
+            return waitingTicketRepository.save(ticket);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(WaitingCode.WAITING_REGISTER_FAILED);
+        }
     }
 
     @Override

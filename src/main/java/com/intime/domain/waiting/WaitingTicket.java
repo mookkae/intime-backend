@@ -13,7 +13,9 @@ import java.time.LocalDate;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "waiting_ticket")
+@Table(name = "waiting_ticket", uniqueConstraints =
+        @UniqueConstraint(columnNames = {"storeId", "waitingDate", "positionNumber"})
+)
 public class WaitingTicket extends BaseTimeEntity {
 
     @Id
@@ -70,7 +72,7 @@ public class WaitingTicket extends BaseTimeEntity {
     }
 
     public void cancel() {
-        if (this.status != WaitingStatus.WAITING && this.status != WaitingStatus.CALLED) {
+        if (!this.status.isCancellable()) {
             throw new BusinessException(WaitingCode.WAITING_INVALID_STATE);
         }
         this.status = WaitingStatus.CANCELLED;
