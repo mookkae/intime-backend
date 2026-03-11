@@ -5,5 +5,9 @@ public enum WaitingStatus {
     CALLED,
     SEATED,
     CANCELLED,
-    NO_SHOW
+    NO_SHOW;
+
+    public boolean isCancellable() {
+        return this == WAITING || this == CALLED;
+    }
 }
