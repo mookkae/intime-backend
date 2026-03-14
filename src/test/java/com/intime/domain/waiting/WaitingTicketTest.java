@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,7 +41,7 @@ class WaitingTicketTest {
         void call() {
             WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
 
-            ticket.call();
+            ticket.call(LocalDateTime.now());
 
             assertThat(ticket.getStatus()).isEqualTo(WaitingStatus.CALLED);
         }
@@ -49,9 +50,9 @@ class WaitingTicketTest {
         @DisplayName("실패 : CALLED 상태에서 call 불가")
         void callFromCalled() {
             WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
-            ticket.call();
+            ticket.call(LocalDateTime.now());
 
-            assertThatThrownBy(ticket::call)
+            assertThatThrownBy(() -> ticket.call(LocalDateTime.now()))
                     .isInstanceOf(BusinessException.class);
         }
     }
@@ -64,7 +65,7 @@ class WaitingTicketTest {
         @DisplayName("성공 : CALLED → SEATED")
         void seat() {
             WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
-            ticket.call();
+            ticket.call(LocalDateTime.now());
 
             ticket.seat();
 
@@ -99,7 +100,7 @@ class WaitingTicketTest {
         @DisplayName("성공 : CALLED → CANCELLED")
         void cancelFromCalled() {
             WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
-            ticket.call();
+            ticket.call(LocalDateTime.now());
 
             ticket.cancel();
 
@@ -110,7 +111,7 @@ class WaitingTicketTest {
         @DisplayName("실패 : SEATED 상태에서 cancel 불가")
         void cancelFromSeated() {
             WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
-            ticket.call();
+            ticket.call(LocalDateTime.now());
             ticket.seat();
 
             assertThatThrownBy(ticket::cancel)
@@ -126,7 +127,7 @@ class WaitingTicketTest {
         @DisplayName("성공 : CALLED → NO_SHOW")
         void noShow() {
             WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
-            ticket.call();
+            ticket.call(LocalDateTime.now());
 
             ticket.noShow();
 
