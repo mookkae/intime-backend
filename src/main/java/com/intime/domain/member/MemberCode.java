@@ -9,10 +9,8 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum MemberCode implements BaseCode {
 
-    MEMBER_CREATED("MEMBER_CREATED_201", HttpStatus.CREATED, "회원이 생성되었습니다."),
-    MEMBER_FOUND("MEMBER_FOUND_200", HttpStatus.OK, "회원 조회에 성공했습니다."),
-    MEMBER_UPDATED("MEMBER_UPDATED_200", HttpStatus.OK, "회원 정보가 수정되었습니다."),
-    MEMBER_NOT_FOUND("MEMBER_NOT_FOUND_404", HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다.");
+    MEMBER_NOT_FOUND("MEMBER_NOT_FOUND", HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."),
+    MEMBER_EMAIL_DUPLICATE("MEMBER_EMAIL_DUPLICATE", HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
 
     private final String code;
     private final HttpStatus status;
