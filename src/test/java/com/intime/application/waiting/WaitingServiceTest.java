@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Clock;
+import java.time.LocalDateTime;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -144,6 +145,7 @@ class WaitingServiceTest {
         @DisplayName("성공 : 가장 작은 순번 호출")
         void callNext() {
             // given
+            setupClock();
             WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
             given(waitingTicketRepository.findTopByStoreIdAndStatusOrderByPositionNumberAsc(1L, WaitingStatus.WAITING))
                     .willReturn(Optional.of(ticket));
@@ -177,7 +179,7 @@ class WaitingServiceTest {
         void confirmSeated() {
             // given
             WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
-            ticket.call();
+            ticket.call(LocalDateTime.now());
             given(waitingTicketRepository.findById(1L)).willReturn(Optional.of(ticket));
 
             // when
@@ -197,7 +199,7 @@ class WaitingServiceTest {
         void markNoShow() {
             // given
             WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
-            ticket.call();
+            ticket.call(LocalDateTime.now());
             given(waitingTicketRepository.findById(1L)).willReturn(Optional.of(ticket));
 
             // when

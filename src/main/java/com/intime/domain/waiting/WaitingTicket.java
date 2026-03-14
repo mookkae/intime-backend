@@ -9,12 +9,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "waiting_ticket", uniqueConstraints =
-        @UniqueConstraint(columnNames = {"storeId", "waitingDate", "positionNumber"})
+@Table(
+        name = "waiting_ticket",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"store_id", "waiting_date", "position_number"}),
+        indexes = {
+                @Index(name = "idx_waiting_ticket_store_status", columnList = "store_id, status"),
+                @Index(name = "idx_waiting_ticket_status_called_at", columnList = "status, called_at"),
+                @Index(name = "idx_waiting_ticket_member_status", columnList = "member_id, status")
+        }
 )
 public class WaitingTicket extends BaseTimeEntity {
 
@@ -41,6 +48,9 @@ public class WaitingTicket extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDate waitingDate;
 
+    @Column
+    private LocalDateTime calledAt;
+
     @Builder(access = AccessLevel.PRIVATE)
     private WaitingTicket(Long storeId, Long memberId, int positionNumber, int partySize, LocalDate waitingDate) {
         this.storeId = storeId;
@@ -61,9 +71,10 @@ public class WaitingTicket extends BaseTimeEntity {
                 .build();
     }
 
-    public void call() {
+    public void call(LocalDateTime calledAt) {
         validateStatus(WaitingStatus.WAITING);
         this.status = WaitingStatus.CALLED;
+        this.calledAt = calledAt;
     }
 
     public void seat() {

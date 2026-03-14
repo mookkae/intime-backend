@@ -38,14 +38,15 @@ class WaitingQueryServiceTest {
     class GetStoreQueue {
 
         @Test
-        @DisplayName("성공 : WAITING 상태 대기열 순번 정렬 조회")
+        @DisplayName("성공 : WAITING/CALLED 상태 대기열 순번 정렬 조회")
         void getStoreQueue() {
             // given
             List<WaitingTicket> tickets = List.of(
                     WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2),
                     WaitingTicketFixture.createTicket(2L, 1L, 2L, 2, 3)
             );
-            given(waitingTicketRepository.findByStoreIdAndStatusOrderByPositionNumberAsc(1L, WaitingStatus.WAITING))
+            given(waitingTicketRepository.findByStoreIdAndStatusInOrderByPositionNumberAsc(
+                    1L, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
                     .willReturn(tickets);
 
             // when

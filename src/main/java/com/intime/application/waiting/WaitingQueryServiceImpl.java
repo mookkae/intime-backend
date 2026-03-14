@@ -21,7 +21,8 @@ public class WaitingQueryServiceImpl implements WaitingQueryService {
 
     @Override
     public List<WaitingTicket> getStoreQueue(Long storeId) {
-        return waitingTicketRepository.findByStoreIdAndStatusOrderByPositionNumberAsc(storeId, WaitingStatus.WAITING);
+        return waitingTicketRepository.findByStoreIdAndStatusInOrderByPositionNumberAsc(
+                storeId, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED));
     }
 
     @Override
@@ -34,6 +35,10 @@ public class WaitingQueryServiceImpl implements WaitingQueryService {
     public WaitingPositionResponse getMyPosition(Long ticketId) {
         WaitingTicket ticket = waitingTicketRepository.findById(ticketId)
                 .orElseThrow(() -> new BusinessException(WaitingCode.WAITING_NOT_FOUND));
+
+        if (ticket.getStatus() != WaitingStatus.WAITING) {
+            throw new BusinessException(WaitingCode.WAITING_INVALID_STATE);
+        }
 
         int aheadCount = waitingTicketRepository.countByStoreIdAndStatusAndPositionNumberLessThan(
                 ticket.getStoreId(), WaitingStatus.WAITING, ticket.getPositionNumber());

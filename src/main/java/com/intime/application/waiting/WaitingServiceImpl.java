@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +54,7 @@ public class WaitingServiceImpl implements WaitingService {
         WaitingTicket ticket = waitingTicketRepository
                 .findTopByStoreIdAndStatusOrderByPositionNumberAsc(storeId, WaitingStatus.WAITING)
                 .orElseThrow(() -> new BusinessException(WaitingCode.WAITING_NO_ONE_WAITING));
-        ticket.call();
+        ticket.call(LocalDateTime.now(clock));
         return ticket;
     }
 
