@@ -12,10 +12,17 @@ public record WaitingTicketResponse(
         int positionNumber,
         WaitingStatus status,
         int partySize,
-        LocalDate waitingDate
+        LocalDate waitingDate,
+        TradePostInfo tradePost
 ) {
 
+    public record TradePostInfo(Long tradePostId, String description) {}
+
     public static WaitingTicketResponse from(WaitingTicket ticket) {
+        return from(ticket, null);
+    }
+
+    public static WaitingTicketResponse from(WaitingTicket ticket, TradePostInfo tradePost) {
         return new WaitingTicketResponse(
                 ticket.getId(),
                 ticket.getStoreId(),
@@ -23,7 +30,8 @@ public record WaitingTicketResponse(
                 ticket.getPositionNumber(),
                 ticket.getStatus(),
                 ticket.getPartySize(),
-                ticket.getWaitingDate()
+                ticket.getWaitingDate(),
+                tradePost
         );
     }
 }
