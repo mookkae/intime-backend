@@ -20,6 +20,9 @@ public class MemberServiceImpl implements MemberService {
     @Override
     @Transactional
     public Member signup(String email, String password) {
+        if (memberRepository.existsByEmail(email)) {
+            throw new BusinessException(MemberCode.MEMBER_EMAIL_DUPLICATE);
+        }
         String nickname = generateNickname();
         return memberRepository.save(Member.create(email, password, nickname));
     }
