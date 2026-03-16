@@ -9,11 +9,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ExchangeRequestRepository extends JpaRepository<ExchangeRequest, Long> {
+    // 교환 신청 목록
     List<ExchangeRequest> findByTradePostId(Long tradePostId);
 
+    // 교환 요청 만료
     List<ExchangeRequest> findByStatusAndExpiresAtBefore(ExchangeRequestStatus status, LocalDateTime now);
 
-    @Modifying
+    // 일괄 반영
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE ExchangeRequest er SET er.status = :rejected WHERE er.tradePostId = :tradePostId AND er.status = :pending AND er.id <> :excludeId")
     void rejectOtherPendingRequests(
             @Param("tradePostId") Long tradePostId,
