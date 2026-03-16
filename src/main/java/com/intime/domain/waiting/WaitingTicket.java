@@ -4,7 +4,6 @@ import com.intime.common.BaseTimeEntity;
 import com.intime.common.exception.BusinessException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,9 +17,10 @@ import java.time.LocalDateTime;
         name = "waiting_ticket",
         uniqueConstraints = @UniqueConstraint(columnNames = {"store_id", "waiting_date", "position_number"}),
         indexes = {
-                @Index(name = "idx_waiting_ticket_store_status", columnList = "store_id, status"),
+                @Index(name = "idx_waiting_ticket_store_status", columnList = "store_id, status, position_number"),
                 @Index(name = "idx_waiting_ticket_status_called_at", columnList = "status, called_at"),
-                @Index(name = "idx_waiting_ticket_member_status", columnList = "member_id, status")
+                @Index(name = "idx_waiting_ticket_member_status", columnList = "member_id, status"),
+                @Index(name = "idx_waiting_ticket_pending_call_at", columnList = "pending_call_at")
         }
 )
 public class WaitingTicket extends BaseTimeEntity {
@@ -28,6 +28,9 @@ public class WaitingTicket extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     @Column(nullable = false)
     private Long storeId;
@@ -51,7 +54,9 @@ public class WaitingTicket extends BaseTimeEntity {
     @Column
     private LocalDateTime calledAt;
 
-    @Builder(access = AccessLevel.PRIVATE)
+    @Column
+    private LocalDateTime pendingCallAt;
+
     private WaitingTicket(Long storeId, Long memberId, int positionNumber, int partySize, LocalDate waitingDate) {
         this.storeId = storeId;
         this.memberId = memberId;
@@ -62,13 +67,7 @@ public class WaitingTicket extends BaseTimeEntity {
     }
 
     public static WaitingTicket create(Long storeId, Long memberId, int positionNumber, int partySize, LocalDate waitingDate) {
-        return WaitingTicket.builder()
-                .storeId(storeId)
-                .memberId(memberId)
-                .positionNumber(positionNumber)
-                .partySize(partySize)
-                .waitingDate(waitingDate)
-                .build();
+        return new WaitingTicket(storeId, memberId, positionNumber, partySize, waitingDate);
     }
 
     public void call(LocalDateTime calledAt) {
@@ -94,8 +93,29 @@ public class WaitingTicket extends BaseTimeEntity {
         this.status = WaitingStatus.NO_SHOW;
     }
 
+    public void reassignTo(Long newMemberId) {
+        this.memberId = newMemberId;
+    }
+
+    public void markPendingCall(LocalDateTime now) {
+        validateStatus(WaitingStatus.WAITING);
+        this.pendingCallAt = now;
+    }
+
+    public void clearPendingCall() {
+        this.pendingCallAt = null;
+    }
+
+    public boolean isTradeable() {
+        return this.status.isTradeable();
+    }
+
     public boolean isOwnedBy(Long memberId) {
         return this.memberId.equals(memberId);
+    }
+
+    public boolean hasPendingCall() {
+        return this.pendingCallAt != null;
     }
 
     private void validateStatus(WaitingStatus expected) {

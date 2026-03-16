@@ -10,4 +10,8 @@ public enum WaitingStatus {
     public boolean isCancellable() {
         return this == WAITING || this == CALLED;
     }
+
+    public boolean isTradeable() {
+        return this == WAITING || this == CALLED;
+    }
 }
