@@ -1,5 +1,5 @@
 package com.intime.domain.trade;
 
 public enum TradePostStatus {
-    OPEN, CLOSED, CANCELLED
+    OPEN, NEGOTIATING, CLOSED, CANCELLED
 }

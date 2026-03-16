@@ -37,39 +37,52 @@ public class TradePost extends BaseTimeEntity {
     @Column(nullable = false)
     private TradePostStatus status;
 
-    @Column
-    private String description;
+    @Column(nullable = false)
+    private Long price;
 
-    @Builder(access = AccessLevel.PRIVATE)
-    private TradePost(Long waitingTicketId, Long sellerId, Long storeId, String description) {
+    @Builder
+    private TradePost(Long waitingTicketId, Long sellerId, Long storeId, Long price) {
         this.waitingTicketId = waitingTicketId;
         this.sellerId = sellerId;
         this.storeId = storeId;
-        this.description = description;
+        this.price = price;
         this.status = TradePostStatus.OPEN;
     }
 
-    public static TradePost create(Long waitingTicketId, Long sellerId, Long storeId, String description) {
-        return TradePost.builder()
-                .waitingTicketId(waitingTicketId)
-                .sellerId(sellerId)
-                .storeId(storeId)
-                .description(description)
-                .build();
+    public static TradePost create(Long waitingTicketId, Long sellerId, Long storeId, Long price) {
+        return new TradePost(waitingTicketId, sellerId, storeId, price);
+    }
+
+    public void startNegotiation() {
+        validateOpen();
+        this.status = TradePostStatus.NEGOTIATING;
+    }
+
+    public void reopen() {
+        validateNegotiating();
+        this.status = TradePostStatus.OPEN;
     }
 
     public void close() {
-        validateOpen();
+        validateNegotiating();
         this.status = TradePostStatus.CLOSED;
     }
 
     public void cancel() {
-        validateOpen();
+        if (this.status != TradePostStatus.OPEN && this.status != TradePostStatus.NEGOTIATING) {
+            throw new BusinessException(TradePostCode.TRADE_POST_INVALID_STATE);
+        }
         this.status = TradePostStatus.CANCELLED;
     }
 
     private void validateOpen() {
         if (this.status != TradePostStatus.OPEN) {
+            throw new BusinessException(TradePostCode.TRADE_POST_INVALID_STATE);
+        }
+    }
+
+    private void validateNegotiating() {
+        if (this.status != TradePostStatus.NEGOTIATING) {
             throw new BusinessException(TradePostCode.TRADE_POST_INVALID_STATE);
         }
     }
