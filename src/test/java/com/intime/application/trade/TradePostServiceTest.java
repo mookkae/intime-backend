@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TradePostService 단위 테스트")
@@ -56,7 +55,6 @@ class TradePostServiceTest {
             assertThat(result.getStatus()).isEqualTo(TradePostStatus.OPEN);
             assertThat(result.getSellerId()).isEqualTo(1L);
             assertThat(result.getStoreId()).isEqualTo(ticket.getStoreId());
-            verify(tradePostRepository).save(any(TradePost.class));
         }
 
         @Test

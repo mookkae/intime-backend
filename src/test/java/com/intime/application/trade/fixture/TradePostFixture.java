@@ -5,12 +5,8 @@ import com.intime.support.TestReflectionUtils;
 
 public class TradePostFixture {
 
-    public static TradePost createPost() {
-        return createPost(1L, 1L, 1L, 1L);
-    }
-
     public static TradePost createPost(Long postId, Long ticketId, Long sellerId, Long storeId) {
-        TradePost post = TradePost.create(ticketId, sellerId, storeId, null);
+        TradePost post = TradePost.create(ticketId, sellerId, storeId, 5000L);
         if (postId != null) {
             TestReflectionUtils.setField(post, "id", postId);
         }

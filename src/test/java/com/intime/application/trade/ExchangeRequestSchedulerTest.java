@@ -19,6 +19,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ExchangeRequestScheduler 단위 테스트")
@@ -72,6 +73,7 @@ class ExchangeRequestSchedulerTest {
         // when
         scheduler.expireRequests();
 
-        // then - no exceptions, no state changes
+        // then
+        verifyNoMoreInteractions(exchangeRequestRepository);
     }
 }
