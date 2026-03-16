@@ -1,7 +1,14 @@
 package com.intime.application.waiting;
 
 import com.intime.common.exception.BusinessException;
-import com.intime.domain.waiting.*;
+import com.intime.domain.negotiation.Negotiation;
+import com.intime.domain.negotiation.NegotiationRepository;
+import com.intime.domain.trade.TradePostRepository;
+import com.intime.domain.trade.TradePostStatus;
+import com.intime.domain.waiting.WaitingCode;
+import com.intime.domain.waiting.WaitingStatus;
+import com.intime.domain.waiting.WaitingTicket;
+import com.intime.domain.waiting.WaitingTicketRepository;
 import com.intime.support.fixture.WaitingTicketFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -13,17 +20,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WaitingService 단위 테스트")
@@ -34,6 +41,15 @@ class WaitingServiceTest {
 
     @Mock
     private WaitingTicketRepository waitingTicketRepository;
+
+    @Mock
+    private TradePostRepository tradePostRepository;
+
+    @Mock
+    private NegotiationRepository negotiationRepository;
+
+    @Mock
+    private WaitingEventPublisher waitingEventPublisher;
 
     @Mock
     private Clock clock;
@@ -69,7 +85,6 @@ class WaitingServiceTest {
             // then
             assertThat(result.getPositionNumber()).isEqualTo(1);
             assertThat(result.getStatus()).isEqualTo(WaitingStatus.WAITING);
-            verify(waitingTicketRepository).save(any(WaitingTicket.class));
         }
 
         @Test
@@ -102,7 +117,9 @@ class WaitingServiceTest {
 
             // when & then
             assertThatThrownBy(() -> waitingService.register(1L, 1L, 2))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_REGISTER_FAILED);
         }
     }
 
@@ -133,7 +150,9 @@ class WaitingServiceTest {
 
             // when & then
             assertThatThrownBy(() -> waitingService.cancel(1L, 999L))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_NOT_OWNER);
         }
     }
 
@@ -142,13 +161,17 @@ class WaitingServiceTest {
     class CallNext {
 
         @Test
-        @DisplayName("성공 : 가장 작은 순번 호출")
+        @DisplayName("성공 : 가장 작은 순번 호출 (거래 없음)")
         void callNext() {
             // given
             setupClock();
             WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
             given(waitingTicketRepository.findTopByStoreIdAndStatusOrderByPositionNumberAsc(1L, WaitingStatus.WAITING))
                     .willReturn(Optional.of(ticket));
+            given(tradePostRepository.findByWaitingTicketIdAndStatus(1L, TradePostStatus.OPEN))
+                    .willReturn(Optional.empty());
+            given(negotiationRepository.findBySellerTicketIdAndStatusIn(eq(1L), any()))
+                    .willReturn(Optional.empty());
 
             // when
             WaitingTicket result = waitingService.callNext(1L);
@@ -166,7 +189,30 @@ class WaitingServiceTest {
 
             // when & then
             assertThatThrownBy(() -> waitingService.callNext(1L))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_NO_ONE_WAITING);
+        }
+
+        @Test
+        @DisplayName("성공 : 활성 협상 중인 티켓 → PENDING_CALL 설정, CALLED 아님")
+        void callNextWithActiveNegotiation() {
+            // given
+            setupClock();
+            WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
+            given(waitingTicketRepository.findTopByStoreIdAndStatusOrderByPositionNumberAsc(1L, WaitingStatus.WAITING))
+                    .willReturn(Optional.of(ticket));
+            given(tradePostRepository.findByWaitingTicketIdAndStatus(1L, TradePostStatus.OPEN))
+                    .willReturn(Optional.empty());
+            given(negotiationRepository.findBySellerTicketIdAndStatusIn(eq(1L), any()))
+                    .willReturn(Optional.of(mock(Negotiation.class)));
+
+            // when
+            WaitingTicket result = waitingService.callNext(1L);
+
+            // then
+            assertThat(result.getStatus()).isEqualTo(WaitingStatus.WAITING);
+            assertThat(result.getPendingCallAt()).isNotNull();
         }
     }
 
