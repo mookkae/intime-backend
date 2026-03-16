@@ -1,6 +1,5 @@
 package com.intime.application.waiting;
 
-import com.intime.application.trade.TradeLifecycleService;
 import com.intime.domain.waiting.WaitingStatus;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.domain.waiting.WaitingTicketRepository;
@@ -17,7 +16,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -35,7 +33,7 @@ class WaitingNoShowSchedulerTest {
     @Mock
     private WaitingTicketRepository waitingTicketRepository;
     @Mock
-    private TradeLifecycleService tradeLifecycleService;
+    private WaitingBatchProcessor waitingBatchProcessor;
     @Mock
     private Clock clock;
 
@@ -51,8 +49,8 @@ class WaitingNoShowSchedulerTest {
     }
 
     @Test
-    @DisplayName("calledAt + 5분 경과 → 캐스케이드 취소 후 NO_SHOW 처리")
-    void expiredCalledTicketMarkedNoShow() {
+    @DisplayName("calledAt + 5분 경과 → WaitingBatchProcessor에 위임")
+    void expiredCalledTicketDelegatesToProcessor() {
         // given
         setupClock();
         WaitingTicket ticket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
@@ -65,8 +63,7 @@ class WaitingNoShowSchedulerTest {
         scheduler.markNoShowExpired();
 
         // then
-        verify(tradeLifecycleService).cancelActiveNegotiationByTicket(10L);
-        assertThat(ticket.getStatus()).isEqualTo(WaitingStatus.NO_SHOW);
+        verify(waitingBatchProcessor).processNoShow(ticket);
     }
 
     @Test
@@ -81,7 +78,7 @@ class WaitingNoShowSchedulerTest {
         scheduler.markNoShowExpired();
 
         // then
-        verifyNoInteractions(tradeLifecycleService);
+        verifyNoInteractions(waitingBatchProcessor);
     }
 
     @Test
@@ -97,13 +94,13 @@ class WaitingNoShowSchedulerTest {
         given(waitingTicketRepository.findByStatusAndCalledAtBefore(eq(WaitingStatus.CALLED), any(LocalDateTime.class)))
                 .willReturn(List.of(failTicket, successTicket));
         willThrow(new RuntimeException("DB error"))
-                .given(tradeLifecycleService).cancelActiveNegotiationByTicket(10L);
+                .given(waitingBatchProcessor).processNoShow(failTicket);
 
-        // when - 예외 발생해도 전체 스케줄러가 죽지 않음
+        // when
         scheduler.markNoShowExpired();
 
         // then
-        assertThat(failTicket.getStatus()).isEqualTo(WaitingStatus.CALLED); // 실패한 건 상태 유지
-        assertThat(successTicket.getStatus()).isEqualTo(WaitingStatus.NO_SHOW); // 나머지 정상 처리
+        verify(waitingBatchProcessor).processNoShow(failTicket);
+        verify(waitingBatchProcessor).processNoShow(successTicket);
     }
 }

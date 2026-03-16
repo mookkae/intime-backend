@@ -1,8 +1,8 @@
 package com.intime.application.waiting;
 
+import com.intime.application.trade.TradeLifecycleService;
 import com.intime.domain.waiting.WaitingStatus;
 import com.intime.domain.waiting.WaitingTicket;
-import com.intime.domain.waiting.WaitingTicketRepository;
 import com.intime.support.fixture.WaitingTicketFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,25 +14,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("PendingCallScheduler 단위 테스트")
-class PendingCallSchedulerTest {
+@DisplayName("WaitingBatchProcessor 단위 테스트")
+class WaitingBatchProcessorTest {
 
     @InjectMocks
-    private PendingCallScheduler scheduler;
+    private WaitingBatchProcessor processor;
 
     @Mock
-    private WaitingTicketRepository waitingTicketRepository;
+    private TradeLifecycleService tradeLifecycleService;
     @Mock
-    private WaitingBatchProcessor waitingBatchProcessor;
+    private WaitingEventPublisher waitingEventPublisher;
     @Mock
     private Clock clock;
 
@@ -48,35 +45,35 @@ class PendingCallSchedulerTest {
     }
 
     @Test
-    @DisplayName("pendingCallAt + 5분 경과 → WaitingBatchProcessor에 위임")
-    void expiredPendingCallDelegatesToProcessor() {
+    @DisplayName("processPendingCall: 거래 취소 → pendingCall 해제 → CALLED 전이 → 이벤트 발행")
+    void processPendingCall() {
         // given
         setupClock();
         WaitingTicket ticket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
         ticket.markPendingCall(FIXED_NOW.minusMinutes(6));
 
-        given(waitingTicketRepository.findByPendingCallAtBeforeAndStatus(any(LocalDateTime.class), eq(WaitingStatus.WAITING)))
-                .willReturn(List.of(ticket));
-
         // when
-        scheduler.processPendingCallExpiry();
+        processor.processPendingCall(ticket);
 
         // then
-        verify(waitingBatchProcessor).processPendingCall(ticket);
+        verify(tradeLifecycleService).cancelActiveNegotiationByTicket(10L);
+        assertThat(ticket.getStatus()).isEqualTo(WaitingStatus.CALLED);
+        assertThat(ticket.getPendingCallAt()).isNull();
+        verify(waitingEventPublisher).publishCalled(10L);
     }
 
     @Test
-    @DisplayName("pendingCallAt + 5분 미경과 → 변경 없음")
-    void notExpiredPendingCallNoChange() {
+    @DisplayName("processNoShow: 거래 취소 → NO_SHOW 전이")
+    void processNoShow() {
         // given
-        setupClock();
-        given(waitingTicketRepository.findByPendingCallAtBeforeAndStatus(any(LocalDateTime.class), eq(WaitingStatus.WAITING)))
-                .willReturn(List.of());
+        WaitingTicket ticket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
+        ticket.call(FIXED_NOW.minusMinutes(6));
 
         // when
-        scheduler.processPendingCallExpiry();
+        processor.processNoShow(ticket);
 
         // then
-        verifyNoInteractions(waitingBatchProcessor);
+        verify(tradeLifecycleService).cancelActiveNegotiationByTicket(10L);
+        assertThat(ticket.getStatus()).isEqualTo(WaitingStatus.NO_SHOW);
     }
 }
