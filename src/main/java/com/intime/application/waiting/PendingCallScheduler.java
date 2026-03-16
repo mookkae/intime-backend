@@ -17,27 +17,30 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class WaitingNoShowScheduler {
+public class PendingCallScheduler {
 
-    private static final int NO_SHOW_TIMEOUT_MINUTES = 5;
+    private static final int PENDING_CALL_TIMEOUT_MINUTES = 5;
 
     private final WaitingTicketRepository waitingTicketRepository;
     private final TradeLifecycleService tradeLifecycleService;
+    private final WaitingEventPublisher waitingEventPublisher;
     private final Clock clock;
 
     @Scheduled(fixedDelay = 30_000)
     @Transactional
-    public void markNoShowExpired() {
-        LocalDateTime threshold = LocalDateTime.now(clock).minusMinutes(NO_SHOW_TIMEOUT_MINUTES);
+    public void processPendingCallExpiry() {
+        LocalDateTime threshold = LocalDateTime.now(clock).minusMinutes(PENDING_CALL_TIMEOUT_MINUTES);
         List<WaitingTicket> expired = waitingTicketRepository
-                .findByStatusAndCalledAtBefore(WaitingStatus.CALLED, threshold);
+                .findByPendingCallAtBeforeAndStatus(threshold, WaitingStatus.WAITING);
 
         for (WaitingTicket ticket : expired) {
             try {
                 tradeLifecycleService.cancelActiveNegotiationByTicket(ticket.getId());
-                ticket.noShow();
+                ticket.clearPendingCall();
+                ticket.call(LocalDateTime.now(clock));
+                waitingEventPublisher.publishCalled(ticket.getId());
             } catch (Exception e) {
-                log.warn("노쇼 처리 실패 - ticketId: {}", ticket.getId(), e);
+                log.warn("보류 호출 처리 실패 - ticketId: {}", ticket.getId(), e);
             }
         }
     }
