@@ -1,6 +1,8 @@
 package com.intime.application.trade;
 
 import com.intime.common.exception.BusinessException;
+import com.intime.domain.negotiation.Negotiation;
+import com.intime.domain.negotiation.NegotiationRepository;
 import com.intime.domain.trade.*;
 import com.intime.domain.waiting.WaitingCode;
 import com.intime.domain.waiting.WaitingStatus;
@@ -24,11 +26,12 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
     private final ExchangeRequestRepository exchangeRequestRepository;
     private final TradePostRepository tradePostRepository;
     private final WaitingTicketRepository waitingTicketRepository;
+    private final NegotiationRepository negotiationRepository;
     private final Clock clock;
 
     @Override
     @Transactional
-    public ExchangeRequest requestExchange(Long postId, Long buyerTicketId, Long buyerId) {
+    public ExchangeRequest requestExchange(Long postId, Long buyerTicketId, Long buyerId, Long offerPrice) {
         TradePost post = getPost(postId);
 
         if (post.getStatus() != TradePostStatus.OPEN) {
@@ -51,7 +54,7 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
         }
 
         LocalDateTime expiresAt = LocalDateTime.now(clock).plusMinutes(REQUEST_TTL_MINUTES);
-        ExchangeRequest request = ExchangeRequest.create(postId, buyerTicketId, buyerId, expiresAt);
+        ExchangeRequest request = ExchangeRequest.create(postId, buyerTicketId, buyerId, offerPrice, expiresAt);
         return exchangeRequestRepository.save(request);
     }
 
@@ -67,7 +70,7 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
 
     @Override
     @Transactional
-    public void selectBuyer(Long requestId, Long sellerId) {
+    public void selectBuyerAndStartNegotiation(Long requestId, Long sellerId) {
         ExchangeRequest selectedRequest = getRequest(requestId);
         TradePost post = getPost(selectedRequest.getTradePostId());
 
@@ -80,11 +83,19 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
         }
 
         selectedRequest.select();
-        exchangeRequestRepository.rejectOtherPendingRequests(
-                post.getId(), selectedRequest.getId(),
-                ExchangeRequestStatus.PENDING, ExchangeRequestStatus.REJECTED
+        post.startNegotiation();
+
+        // 구매자의 offerPrice를 offer 1로 삼아 협상 자동 시작
+        Negotiation negotiation = Negotiation.create(
+                selectedRequest.getId(),
+                sellerId,
+                selectedRequest.getBuyerId(),
+                post.getWaitingTicketId(),
+                selectedRequest.getBuyerTicketId(),
+                selectedRequest.getOfferPrice(),
+                clock
         );
-        post.close();
+        negotiationRepository.save(negotiation);
     }
 
     @Override
