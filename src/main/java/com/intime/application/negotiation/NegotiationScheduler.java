@@ -29,7 +29,7 @@ public class NegotiationScheduler {
     public void expireNegotiations() {
         LocalDateTime now = LocalDateTime.now(clock);
         List<Negotiation> expired = negotiationRepository.findByStatusInAndExpiresAtBefore(
-                NegotiationStatus.ACTIVE_STATUSES, now);
+                List.of(NegotiationStatus.NEGOTIATING, NegotiationStatus.FINAL_ROUND), now);
 
         for (Negotiation negotiation : expired) {
             try {

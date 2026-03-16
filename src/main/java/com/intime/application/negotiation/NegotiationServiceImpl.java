@@ -75,11 +75,6 @@ public class NegotiationServiceImpl implements NegotiationService {
             throw new BusinessException(NegotiationCode.SELLER_TICKET_NOT_TRADEABLE);
         }
 
-        WaitingTicket buyerTicket = getTicket(negotiation.getBuyerTicketId());
-        if (!buyerTicket.isTradeable()) {
-            throw new BusinessException(NegotiationCode.BUYER_TICKET_NOT_TRADEABLE);
-        }
-
         negotiation.accept(memberId);
         executeDeal(negotiation, sellerTicket);
     }
@@ -107,11 +102,6 @@ public class NegotiationServiceImpl implements NegotiationService {
         WaitingTicket sellerTicket = getTicket(negotiation.getSellerTicketId());
         if (!sellerTicket.isTradeable()) {
             throw new BusinessException(NegotiationCode.SELLER_TICKET_NOT_TRADEABLE);
-        }
-
-        WaitingTicket buyerTicket = getTicket(negotiation.getBuyerTicketId());
-        if (!buyerTicket.isTradeable()) {
-            throw new BusinessException(NegotiationCode.BUYER_TICKET_NOT_TRADEABLE);
         }
 
         boolean dealReached = negotiation.submitFinalOffer(memberId, price);
