@@ -5,10 +5,6 @@ import com.intime.support.TestReflectionUtils;
 
 public class StoreFixture {
 
-    public static Store createStore() {
-        return createStore(1L);
-    }
-
     public static Store createStore(Long storeId) {
         return createStore(storeId, "하뚜분식", "서울시 양천구", 30);
     }
