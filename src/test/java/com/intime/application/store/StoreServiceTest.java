@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("StoreService 단위 테스트")
@@ -40,15 +39,15 @@ class StoreServiceTest {
         @DisplayName("성공 : 가게 생성")
         void createStore() {
             // given
-            Store store = StoreFixture.createStore(1L);
-            given(storeRepository.save(any(Store.class))).willReturn(store);
+            given(storeRepository.save(any(Store.class))).willAnswer(inv -> inv.getArgument(0));
 
             // when
             Store result = storeService.createStore("하뚜분식", "서울시 양천구", 30);
 
             // then
             assertThat(result.getName()).isEqualTo("하뚜분식");
-            verify(storeRepository).save(any(Store.class));
+            assertThat(result.getAddress()).isEqualTo("서울시 양천구");
+            assertThat(result.getEstimatedWaitMinutes()).isEqualTo(30);
         }
     }
 

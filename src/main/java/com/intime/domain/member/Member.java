@@ -3,7 +3,6 @@ package com.intime.domain.member;
 import com.intime.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -26,7 +25,6 @@ public class Member extends BaseTimeEntity {
     @Column(nullable = false, unique = true, length = 20)
     private String nickname;
 
-    @Builder(access = AccessLevel.PRIVATE)
     private Member(String email, String password, String nickname) {
         this.email = email;
         this.password = password;
@@ -34,11 +32,7 @@ public class Member extends BaseTimeEntity {
     }
 
     public static Member create(String email, String password, String nickname) {
-        return Member.builder()
-                .email(email)
-                .password(password)
-                .nickname(nickname)
-                .build();
+        return new Member(email, password, nickname);
     }
 
     public void updateNickname(String nickname) {

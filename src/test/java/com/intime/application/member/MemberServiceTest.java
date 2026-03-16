@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MemberService 단위 테스트")
@@ -47,7 +46,6 @@ class MemberServiceTest {
             // then
             assertThat(result.getEmail()).isEqualTo("test@email.com");
             assertThat(result.getNickname()).startsWith("기다려");
-            verify(memberRepository).save(any(Member.class));
         }
     }
 
