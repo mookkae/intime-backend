@@ -23,7 +23,7 @@ public class ExchangeRequestController {
             @RequestHeader("X-Member-Id") Long memberId,
             @RequestBody ExchangeRequestCreateRequest request
     ) {
-        ExchangeRequest exchangeRequest = exchangeRequestService.requestExchange(postId, request.buyerTicketId(), memberId);
+        ExchangeRequest exchangeRequest = exchangeRequestService.requestExchange(postId, request.buyerTicketId(), memberId, request.offerPrice());
         return ResponseEntity.status(HttpStatus.CREATED).body(ExchangeRequestResponse.from(exchangeRequest));
     }
 
@@ -48,7 +48,7 @@ public class ExchangeRequestController {
             @PathVariable Long requestId,
             @RequestHeader("X-Member-Id") Long memberId
     ) {
-        exchangeRequestService.selectBuyer(requestId, memberId);
+        exchangeRequestService.selectBuyerAndStartNegotiation(requestId, memberId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -11,7 +11,7 @@ public record TradePostResponse(
         Long sellerId,
         Long storeId,
         TradePostStatus status,
-        String description,
+        Long price,
         LocalDateTime createdAt
 ) {
     public static TradePostResponse from(TradePost post) {
@@ -21,7 +21,7 @@ public record TradePostResponse(
                 post.getSellerId(),
                 post.getStoreId(),
                 post.getStatus(),
-                post.getDescription(),
+                post.getPrice(),
                 post.getCreatedAt()
         );
     }

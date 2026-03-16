@@ -23,7 +23,7 @@ public class TradePostController {
             @RequestHeader("X-Member-Id") Long memberId,
             @RequestBody TradePostCreateRequest request
     ) {
-        TradePost post = tradePostService.register(ticketId, memberId, request.description());
+        TradePost post = tradePostService.register(ticketId, memberId, request.price());
         return ResponseEntity.status(HttpStatus.CREATED).body(TradePostResponse.from(post));
     }
 
