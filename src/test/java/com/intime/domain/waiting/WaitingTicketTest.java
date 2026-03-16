@@ -14,6 +14,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("WaitingTicket 엔티티 단위 테스트")
 class WaitingTicketTest {
 
+    private WaitingTicket createDefaultTicket() {
+        return WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+    }
+
     @Nested
     @DisplayName("create 팩토리 메서드")
     class Create {
@@ -21,7 +25,7 @@ class WaitingTicketTest {
         @Test
         @DisplayName("성공 : 대기표 생성 시 WAITING 상태")
         void createTicket() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
 
             assertThat(ticket.getStoreId()).isEqualTo(1L);
             assertThat(ticket.getMemberId()).isEqualTo(1L);
@@ -39,7 +43,7 @@ class WaitingTicketTest {
         @Test
         @DisplayName("성공 : WAITING → CALLED")
         void call() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
 
             ticket.call(LocalDateTime.now());
 
@@ -49,11 +53,13 @@ class WaitingTicketTest {
         @Test
         @DisplayName("실패 : CALLED 상태에서 call 불가")
         void callFromCalled() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
             ticket.call(LocalDateTime.now());
 
             assertThatThrownBy(() -> ticket.call(LocalDateTime.now()))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_INVALID_STATE);
         }
     }
 
@@ -64,7 +70,7 @@ class WaitingTicketTest {
         @Test
         @DisplayName("성공 : CALLED → SEATED")
         void seat() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
             ticket.call(LocalDateTime.now());
 
             ticket.seat();
@@ -75,10 +81,12 @@ class WaitingTicketTest {
         @Test
         @DisplayName("실패 : WAITING 상태에서 seat 불가")
         void seatFromWaiting() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
 
             assertThatThrownBy(ticket::seat)
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_INVALID_STATE);
         }
     }
 
@@ -89,7 +97,7 @@ class WaitingTicketTest {
         @Test
         @DisplayName("성공 : WAITING → CANCELLED")
         void cancelFromWaiting() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
 
             ticket.cancel();
 
@@ -99,7 +107,7 @@ class WaitingTicketTest {
         @Test
         @DisplayName("성공 : CALLED → CANCELLED")
         void cancelFromCalled() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
             ticket.call(LocalDateTime.now());
 
             ticket.cancel();
@@ -110,12 +118,117 @@ class WaitingTicketTest {
         @Test
         @DisplayName("실패 : SEATED 상태에서 cancel 불가")
         void cancelFromSeated() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
             ticket.call(LocalDateTime.now());
             ticket.seat();
 
             assertThatThrownBy(ticket::cancel)
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_INVALID_STATE);
+        }
+    }
+
+    @Nested
+    @DisplayName("reassignTo 메서드")
+    class ReassignTo {
+
+        @Test
+        @DisplayName("성공 : memberId 교체")
+        void reassignTo() {
+            WaitingTicket ticket = createDefaultTicket();
+
+            ticket.reassignTo(99L);
+
+            assertThat(ticket.getMemberId()).isEqualTo(99L);
+        }
+
+        @Test
+        @DisplayName("성공 : swap 후 각각 상대방 memberId 보유")
+        void swapMemberIds() {
+            WaitingTicket sellerTicket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket buyerTicket = WaitingTicket.create(1L, 2L, 3, 2, LocalDate.of(2026, 3, 11));
+
+            Long sellerId = sellerTicket.getMemberId();
+            Long buyerId = buyerTicket.getMemberId();
+
+            sellerTicket.reassignTo(buyerId);
+            buyerTicket.reassignTo(sellerId);
+
+            assertThat(sellerTicket.getMemberId()).isEqualTo(buyerId);
+            assertThat(buyerTicket.getMemberId()).isEqualTo(sellerId);
+            assertThat(sellerTicket.getPositionNumber()).isEqualTo(1);
+            assertThat(buyerTicket.getPositionNumber()).isEqualTo(3);
+        }
+    }
+
+    @Nested
+    @DisplayName("markPendingCall 메서드")
+    class MarkPendingCall {
+
+        @Test
+        @DisplayName("성공 : WAITING 상태에서 pendingCallAt 설정")
+        void markPendingCallFromWaiting() {
+            WaitingTicket ticket = createDefaultTicket();
+            LocalDateTime now = LocalDateTime.now();
+
+            ticket.markPendingCall(now);
+
+            assertThat(ticket.getPendingCallAt()).isEqualTo(now);
+        }
+
+        @Test
+        @DisplayName("실패 : CALLED 상태에서 markPendingCall 불가")
+        void markPendingCallFromCalled() {
+            WaitingTicket ticket = createDefaultTicket();
+            ticket.call(LocalDateTime.now());
+
+            assertThatThrownBy(() -> ticket.markPendingCall(LocalDateTime.now()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_INVALID_STATE);
+        }
+    }
+
+    @Nested
+    @DisplayName("isTradeable 메서드")
+    class IsTradeable {
+
+        @Test
+        @DisplayName("성공 : WAITING 상태는 거래 가능")
+        void waitingIsTradeable() {
+            WaitingTicket ticket = createDefaultTicket();
+
+            assertThat(ticket.isTradeable()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공 : CALLED 상태는 거래 가능")
+        void calledIsTradeable() {
+            WaitingTicket ticket = createDefaultTicket();
+            ticket.call(LocalDateTime.now());
+
+            assertThat(ticket.isTradeable()).isTrue();
+        }
+
+        @Test
+        @DisplayName("실패 : SEATED 상태는 거래 불가")
+        void seatedIsNotTradeable() {
+            WaitingTicket ticket = createDefaultTicket();
+            ticket.call(LocalDateTime.now());
+            ticket.seat();
+
+            assertThat(ticket.isTradeable()).isFalse();
+        }
+
+        @Test
+        @DisplayName("실패 : NO_SHOW 상태는 거래 불가")
+        void noShowIsNotTradeable() {
+            WaitingTicket ticket = createDefaultTicket();
+            ticket.call(LocalDateTime.now());
+            ticket.noShow();
+
+            assertThat(ticket.isTradeable()).isFalse();
         }
     }
 
@@ -126,7 +239,7 @@ class WaitingTicketTest {
         @Test
         @DisplayName("성공 : CALLED → NO_SHOW")
         void noShow() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
             ticket.call(LocalDateTime.now());
 
             ticket.noShow();
@@ -137,10 +250,12 @@ class WaitingTicketTest {
         @Test
         @DisplayName("실패 : WAITING 상태에서 noShow 불가")
         void noShowFromWaiting() {
-            WaitingTicket ticket = WaitingTicket.create(1L, 1L, 1, 2, LocalDate.of(2026, 3, 11));
+            WaitingTicket ticket = createDefaultTicket();
 
             assertThatThrownBy(ticket::noShow)
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_INVALID_STATE);
         }
     }
 }

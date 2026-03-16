@@ -3,7 +3,6 @@ package com.intime.domain.store;
 import com.intime.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -26,7 +25,6 @@ public class Store extends BaseTimeEntity {
     @Column(nullable = false)
     private int estimatedWaitMinutes;
 
-    @Builder(access = AccessLevel.PRIVATE)
     private Store(String name, String address, int estimatedWaitMinutes) {
         this.name = name;
         this.address = address;
@@ -34,10 +32,6 @@ public class Store extends BaseTimeEntity {
     }
 
     public static Store create(String name, String address, int estimatedWaitMinutes) {
-        return Store.builder()
-                .name(name)
-                .address(address)
-                .estimatedWaitMinutes(estimatedWaitMinutes)
-                .build();
+        return new Store(name, address, estimatedWaitMinutes);
     }
 }
