@@ -150,10 +150,12 @@ class NegotiationServiceTest {
             TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
             post.startNegotiation();
             WaitingTicket sellerTicket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
+            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(20L, 1L, 2L, 2, 2);
             Deal deal = mock(Deal.class);
 
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
             given(waitingTicketRepository.findById(10L)).willReturn(Optional.of(sellerTicket));
+            given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
             given(dealService.executeTrade(negotiation)).willReturn(deal);
             given(exchangeRequestRepository.findById(1L)).willReturn(Optional.of(request));
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
@@ -175,9 +177,11 @@ class NegotiationServiceTest {
             // given - lastOfferedBy=buyer(2L), buyer가 자기 오퍼 수락 시 예외
             Negotiation negotiation = NegotiationFixture.createNegotiation();
             WaitingTicket sellerTicket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
+            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(20L, 1L, 2L, 2, 2);
 
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
             given(waitingTicketRepository.findById(10L)).willReturn(Optional.of(sellerTicket));
+            given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
 
             // when & then
             assertThatThrownBy(() -> negotiationService.accept(1L, 2L))
@@ -220,10 +224,12 @@ class NegotiationServiceTest {
             TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
             post.startNegotiation();
             WaitingTicket sellerTicket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
+            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(20L, 1L, 2L, 2, 2);
             Deal deal = mock(Deal.class);
 
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
             given(waitingTicketRepository.findById(10L)).willReturn(Optional.of(sellerTicket));
+            given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
             given(dealService.executeTrade(negotiation)).willReturn(deal);
             given(exchangeRequestRepository.findById(1L)).willReturn(Optional.of(request));
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
@@ -246,9 +252,11 @@ class NegotiationServiceTest {
             // given
             Negotiation negotiation = NegotiationFixture.createFinalRoundNegotiation();
             WaitingTicket sellerTicket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
+            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(20L, 1L, 2L, 2, 2);
 
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
             given(waitingTicketRepository.findById(10L)).willReturn(Optional.of(sellerTicket));
+            given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
 
             negotiationService.submitFinalOffer(1L, 2L, 5000L); // 구매자: 5000
 
@@ -265,9 +273,11 @@ class NegotiationServiceTest {
             // given
             Negotiation negotiation = NegotiationFixture.createNegotiation(); // NEGOTIATING 상태
             WaitingTicket sellerTicket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
+            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(20L, 1L, 2L, 2, 2);
 
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
             given(waitingTicketRepository.findById(10L)).willReturn(Optional.of(sellerTicket));
+            given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
 
             // when & then - 서비스가 sellerTicket 조회 후 도메인 메서드 호출 → FINAL_ROUND 아님 예외
             assertThatThrownBy(() -> negotiationService.submitFinalOffer(1L, 2L, 7000L))
@@ -282,9 +292,11 @@ class NegotiationServiceTest {
             // given
             Negotiation negotiation = NegotiationFixture.createFinalRoundNegotiation();
             WaitingTicket sellerTicket = WaitingTicketFixture.createTicket(10L, 1L, 1L, 1, 2);
+            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(20L, 1L, 2L, 2, 2);
 
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
             given(waitingTicketRepository.findById(10L)).willReturn(Optional.of(sellerTicket));
+            given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
 
             negotiationService.submitFinalOffer(1L, 2L, 8000L); // 구매자 1차 제출
 
