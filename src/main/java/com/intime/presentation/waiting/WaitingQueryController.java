@@ -29,7 +29,7 @@ public class WaitingQueryController {
         Map<Long, TradePostInfo> tradePostByTicketId = tradePostService.getStoreTradePosts(storeId).stream()
                 .collect(Collectors.toMap(
                         TradePost::getWaitingTicketId,
-                        tp -> new TradePostInfo(tp.getId(), tp.getDescription())
+                        tp -> new TradePostInfo(tp.getId(), tp.getPrice())
                 ));
 
         return ResponseEntity.ok(tickets.stream()
