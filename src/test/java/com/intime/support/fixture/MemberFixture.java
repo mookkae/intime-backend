@@ -5,10 +5,6 @@ import com.intime.support.TestReflectionUtils;
 
 public class MemberFixture {
 
-    public static Member createMember() {
-        return createMember(1L);
-    }
-
     public static Member createMember(Long memberId) {
         return createMember(memberId, "test@email.com", "password123", "테스트유저");
     }

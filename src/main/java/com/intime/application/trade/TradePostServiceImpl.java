@@ -22,7 +22,7 @@ public class TradePostServiceImpl implements TradePostService {
 
     @Override
     @Transactional
-    public TradePost register(Long ticketId, Long sellerId, String description) {
+    public TradePost register(Long ticketId, Long sellerId, Long price) {
         WaitingTicket ticket = waitingTicketRepository.findById(ticketId)
                 .orElseThrow(() -> new BusinessException(WaitingCode.WAITING_NOT_FOUND));
 
@@ -38,7 +38,7 @@ public class TradePostServiceImpl implements TradePostService {
             throw new BusinessException(TradePostCode.TRADE_POST_DUPLICATE);
         }
 
-        TradePost post = TradePost.create(ticketId, sellerId, ticket.getStoreId(), description);
+        TradePost post = TradePost.create(ticketId, sellerId, ticket.getStoreId(), price);
         return tradePostRepository.save(post);
     }
 

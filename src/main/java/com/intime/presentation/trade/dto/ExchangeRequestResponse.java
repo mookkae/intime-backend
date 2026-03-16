@@ -10,6 +10,7 @@ public record ExchangeRequestResponse(
         Long tradePostId,
         Long buyerTicketId,
         Long buyerId,
+        Long offerPrice,
         ExchangeRequestStatus status,
         LocalDateTime expiresAt,
         LocalDateTime createdAt
@@ -20,6 +21,7 @@ public record ExchangeRequestResponse(
                 request.getTradePostId(),
                 request.getBuyerTicketId(),
                 request.getBuyerId(),
+                request.getOfferPrice(),
                 request.getStatus(),
                 request.getExpiresAt(),
                 request.getCreatedAt()

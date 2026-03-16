@@ -3,7 +3,9 @@ package com.intime.application.trade;
 import com.intime.application.trade.fixture.ExchangeRequestFixture;
 import com.intime.application.trade.fixture.TradePostFixture;
 import com.intime.common.exception.BusinessException;
+import com.intime.domain.negotiation.NegotiationRepository;
 import com.intime.domain.trade.*;
+import com.intime.domain.waiting.WaitingCode;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.domain.waiting.WaitingTicketRepository;
 import com.intime.support.fixture.WaitingTicketFixture;
@@ -26,6 +28,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.intime.domain.negotiation.Negotiation;
+import com.intime.domain.negotiation.NegotiationStatus;
+import org.mockito.ArgumentCaptor;
+
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ExchangeRequestService 단위 테스트")
 class ExchangeRequestServiceTest {
@@ -41,6 +47,9 @@ class ExchangeRequestServiceTest {
 
     @Mock
     private WaitingTicketRepository waitingTicketRepository;
+
+    @Mock
+    private NegotiationRepository negotiationRepository;
 
     @Mock
     private Clock clock;
@@ -72,12 +81,12 @@ class ExchangeRequestServiceTest {
             given(exchangeRequestRepository.save(any(ExchangeRequest.class))).willAnswer(inv -> inv.getArgument(0));
 
             // when
-            ExchangeRequest result = exchangeRequestService.requestExchange(1L, 2L, 2L);
+            ExchangeRequest result = exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L);
 
             // then
             assertThat(result.getStatus()).isEqualTo(ExchangeRequestStatus.PENDING);
+            assertThat(result.getOfferPrice()).isEqualTo(10000L);
             assertThat(result.getExpiresAt()).isEqualTo(FIXED_NOW.plusMinutes(5));
-            verify(exchangeRequestRepository).save(any(ExchangeRequest.class));
         }
 
         @Test
@@ -91,8 +100,10 @@ class ExchangeRequestServiceTest {
             given(waitingTicketRepository.findById(2L)).willReturn(Optional.of(buyerTicket));
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L))
-                    .isInstanceOf(BusinessException.class);
+            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(ExchangeRequestCode.BUYER_TICKET_NOT_WAITING);
         }
 
         @Test
@@ -103,8 +114,10 @@ class ExchangeRequestServiceTest {
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L))
-                    .isInstanceOf(BusinessException.class);
+            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(ExchangeRequestCode.EXCHANGE_REQUEST_SELF_POST);
         }
 
         @Test
@@ -117,8 +130,10 @@ class ExchangeRequestServiceTest {
             given(waitingTicketRepository.findById(2L)).willReturn(Optional.of(buyerTicket));
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L))
-                    .isInstanceOf(BusinessException.class);
+            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(ExchangeRequestCode.BUYER_TICKET_NOT_OWNER);
         }
     }
 
@@ -149,31 +164,41 @@ class ExchangeRequestServiceTest {
 
             // when & then
             assertThatThrownBy(() -> exchangeRequestService.cancelRequest(1L, 999L))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(ExchangeRequestCode.EXCHANGE_REQUEST_NOT_OWNER);
         }
     }
 
     @Nested
-    @DisplayName("selectBuyer 메서드")
+    @DisplayName("selectBuyerAndStartNegotiation 메서드")
     class SelectBuyer {
 
         @Test
-        @DisplayName("성공 : 구매자 선택 → request SELECTED, TradePost CLOSED, 나머지 PENDING 거절")
-        void selectBuyerSuccess() {
+        @DisplayName("성공 : 구매자 선택 → request SELECTED, TradePost NEGOTIATING, Negotiation 자동 생성")
+        void selectBuyerAndStartNegotiationSuccess() {
             // given
+            setupClock();
             ExchangeRequest request = ExchangeRequestFixture.createRequest(1L, 1L, 2L, 2L);
             TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L); // sellerId=1
             given(exchangeRequestRepository.findById(1L)).willReturn(Optional.of(request));
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
+            given(negotiationRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             // when
-            exchangeRequestService.selectBuyer(1L, 1L);
+            exchangeRequestService.selectBuyerAndStartNegotiation(1L, 1L);
 
             // then
             assertThat(request.getStatus()).isEqualTo(ExchangeRequestStatus.SELECTED);
-            assertThat(post.getStatus()).isEqualTo(TradePostStatus.CLOSED);
-            verify(exchangeRequestRepository).rejectOtherPendingRequests(
-                    1L, 1L, ExchangeRequestStatus.PENDING, ExchangeRequestStatus.REJECTED);
+            assertThat(post.getStatus()).isEqualTo(TradePostStatus.NEGOTIATING);
+
+            ArgumentCaptor<Negotiation> captor = ArgumentCaptor.forClass(Negotiation.class);
+            verify(negotiationRepository).save(captor.capture());
+            Negotiation savedNegotiation = captor.getValue();
+            assertThat(savedNegotiation.getStatus()).isEqualTo(NegotiationStatus.NEGOTIATING);
+            assertThat(savedNegotiation.getSellerId()).isEqualTo(1L);
+            assertThat(savedNegotiation.getBuyerId()).isEqualTo(2L);
+            assertThat(savedNegotiation.getCurrentPrice()).isEqualTo(10000L);
         }
 
         @Test
@@ -186,8 +211,10 @@ class ExchangeRequestServiceTest {
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.selectBuyer(1L, 999L))
-                    .isInstanceOf(BusinessException.class);
+            assertThatThrownBy(() -> exchangeRequestService.selectBuyerAndStartNegotiation(1L, 999L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(TradePostCode.TRADE_POST_NOT_OWNER);
         }
 
         @Test
@@ -196,13 +223,16 @@ class ExchangeRequestServiceTest {
             // given
             ExchangeRequest request = ExchangeRequestFixture.createRequest(1L, 1L, 2L, 2L);
             TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
-            post.close();
+            post.startNegotiation();
+            post.close(); // NEGOTIATING → CLOSED
             given(exchangeRequestRepository.findById(1L)).willReturn(Optional.of(request));
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.selectBuyer(1L, 1L))
-                    .isInstanceOf(BusinessException.class);
+            assertThatThrownBy(() -> exchangeRequestService.selectBuyerAndStartNegotiation(1L, 1L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(TradePostCode.TRADE_POST_INVALID_STATE);
         }
     }
 }

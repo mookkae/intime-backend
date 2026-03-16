@@ -5,7 +5,7 @@ import com.intime.domain.trade.TradePost;
 import java.util.List;
 
 public interface TradePostService {
-    TradePost register(Long ticketId, Long sellerId, String description);
+    TradePost register(Long ticketId, Long sellerId, Long price);
 
     void withdraw(Long postId, Long sellerId);
 

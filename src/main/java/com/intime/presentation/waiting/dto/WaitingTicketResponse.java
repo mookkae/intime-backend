@@ -16,7 +16,7 @@ public record WaitingTicketResponse(
         TradePostInfo tradePost
 ) {
 
-    public record TradePostInfo(Long tradePostId, String description) {}
+    public record TradePostInfo(Long tradePostId, Long price) {}
 
     public static WaitingTicketResponse from(WaitingTicket ticket) {
         return from(ticket, null);

@@ -35,6 +35,9 @@ public class ExchangeRequest extends BaseTimeEntity {
     @Column(nullable = false)
     private Long buyerId;
 
+    @Column(nullable = false)
+    private Long offerPrice;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ExchangeRequestStatus status;
@@ -42,22 +45,20 @@ public class ExchangeRequest extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
-    @Builder(access = AccessLevel.PRIVATE)
-    private ExchangeRequest(Long tradePostId, Long buyerTicketId, Long buyerId, LocalDateTime expiresAt) {
+    @Builder
+    private ExchangeRequest(Long tradePostId, Long buyerTicketId, Long buyerId,
+                            Long offerPrice, LocalDateTime expiresAt) {
         this.tradePostId = tradePostId;
         this.buyerTicketId = buyerTicketId;
         this.buyerId = buyerId;
+        this.offerPrice = offerPrice;
         this.status = ExchangeRequestStatus.PENDING;
         this.expiresAt = expiresAt;
     }
 
-    public static ExchangeRequest create(Long tradePostId, Long buyerTicketId, Long buyerId, LocalDateTime expiresAt) {
-        return ExchangeRequest.builder()
-                .tradePostId(tradePostId)
-                .buyerTicketId(buyerTicketId)
-                .buyerId(buyerId)
-                .expiresAt(expiresAt)
-                .build();
+    public static ExchangeRequest create(Long tradePostId, Long buyerTicketId, Long buyerId,
+                                         Long offerPrice, LocalDateTime expiresAt) {
+        return new ExchangeRequest(tradePostId, buyerTicketId, buyerId, offerPrice, expiresAt);
     }
 
     public void select() {
@@ -65,8 +66,16 @@ public class ExchangeRequest extends BaseTimeEntity {
         this.status = ExchangeRequestStatus.SELECTED;
     }
 
+    public void complete() {
+        validateSelected();
+        this.status = ExchangeRequestStatus.COMPLETED;
+    }
+
     public void cancel() {
-        validatePending();
+        if (this.status != ExchangeRequestStatus.PENDING &&
+                this.status != ExchangeRequestStatus.SELECTED) {
+            throw new BusinessException(ExchangeRequestCode.EXCHANGE_REQUEST_INVALID_STATE);
+        }
         this.status = ExchangeRequestStatus.CANCELLED;
     }
 
@@ -81,6 +90,12 @@ public class ExchangeRequest extends BaseTimeEntity {
 
     private void validatePending() {
         if (this.status != ExchangeRequestStatus.PENDING) {
+            throw new BusinessException(ExchangeRequestCode.EXCHANGE_REQUEST_INVALID_STATE);
+        }
+    }
+
+    private void validateSelected() {
+        if (this.status != ExchangeRequestStatus.SELECTED) {
             throw new BusinessException(ExchangeRequestCode.EXCHANGE_REQUEST_INVALID_STATE);
         }
     }
