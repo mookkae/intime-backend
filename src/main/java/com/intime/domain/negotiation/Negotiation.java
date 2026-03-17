@@ -180,7 +180,7 @@ public class Negotiation extends BaseTimeEntity {
         this.status = NegotiationStatus.EXPIRED;
     }
 
-    public void fail() {
+    private void fail() {
         if (this.status != NegotiationStatus.FINAL_ROUND) {
             throw new BusinessException(NegotiationCode.NEGOTIATION_INVALID_STATE);
         }
