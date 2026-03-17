@@ -5,6 +5,7 @@ import com.intime.domain.member.Member;
 import com.intime.presentation.member.dto.MemberResponse;
 import com.intime.presentation.member.dto.NicknameUpdateRequest;
 import com.intime.presentation.member.dto.SignupRequest;
+import com.intime.presentation.member.api.MemberApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/members")
-public class MemberController {
+public class MemberController implements MemberApi {
 
     private final MemberService memberService;
 

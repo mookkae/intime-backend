@@ -37,6 +37,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:2.0.3")
     testImplementation("org.testcontainers:testcontainers-mysql:2.0.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
 }
 
 tasks.named<Test>("test") {

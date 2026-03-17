@@ -7,6 +7,7 @@ import com.intime.domain.trade.TradePost;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.presentation.waiting.dto.WaitingTicketResponse;
 import com.intime.presentation.waiting.dto.WaitingTicketResponse.TradePostInfo;
+import com.intime.presentation.waiting.api.WaitingQueryApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
-public class WaitingQueryController {
+public class WaitingQueryController implements WaitingQueryApi {
 
     private final WaitingQueryService waitingQueryService;
     private final TradePostService tradePostService;
