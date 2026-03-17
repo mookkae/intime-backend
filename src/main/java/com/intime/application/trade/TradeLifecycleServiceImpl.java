@@ -10,9 +10,11 @@ import com.intime.domain.trade.TradePost;
 import com.intime.domain.trade.TradePostCode;
 import com.intime.domain.trade.TradePostRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -27,6 +29,7 @@ public class TradeLifecycleServiceImpl implements TradeLifecycleService {
     public void cancelActiveNegotiationByTicket(Long ticketId) {
         negotiationRepository.findBySellerTicketIdAndStatusIn(ticketId, NegotiationStatus.ACTIVE_STATUSES)
                 .ifPresent(negotiation -> {
+                    log.warn("협상 강제 종료 (순번 호출) - ticketId: {}, negotiationId: {}", ticketId, negotiation.getId());
                     negotiation.cancel();
 
                     ExchangeRequest request = getRequest(negotiation.getExchangeRequestId());
@@ -45,6 +48,7 @@ public class TradeLifecycleServiceImpl implements TradeLifecycleService {
 
         TradePost post = getPost(request.getTradePostId());
         post.reopen();
+        log.info("신청 취소 + 포스트 재오픈 - exchangeRequestId: {}, postId: {}", exchangeRequestId, post.getId());
     }
 
     private ExchangeRequest getRequest(Long requestId) {

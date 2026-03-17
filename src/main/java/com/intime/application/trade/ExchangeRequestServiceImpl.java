@@ -9,6 +9,7 @@ import com.intime.domain.waiting.WaitingStatus;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.domain.waiting.WaitingTicketRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -27,6 +29,7 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
     private final TradePostRepository tradePostRepository;
     private final WaitingTicketRepository waitingTicketRepository;
     private final NegotiationRepository negotiationRepository;
+    private final TradePostEventPublisher tradePostEventPublisher;
     private final Clock clock;
 
     @Override
@@ -42,6 +45,12 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
             throw new BusinessException(ExchangeRequestCode.EXCHANGE_REQUEST_SELF_POST);
         }
 
+        boolean isDuplicate = exchangeRequestRepository.existsByTradePostIdAndBuyerIdAndStatusIn(
+                postId, buyerId, List.of(ExchangeRequestStatus.PENDING, ExchangeRequestStatus.SELECTED));
+        if (isDuplicate) {
+            throw new BusinessException(ExchangeRequestCode.EXCHANGE_REQUEST_DUPLICATE);
+        }
+
         WaitingTicket buyerTicket = waitingTicketRepository.findById(buyerTicketId)
                 .orElseThrow(() -> new BusinessException(WaitingCode.WAITING_NOT_FOUND));
 
@@ -55,7 +64,10 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
 
         LocalDateTime expiresAt = LocalDateTime.now(clock).plusMinutes(REQUEST_TTL_MINUTES);
         ExchangeRequest request = ExchangeRequest.create(postId, buyerTicketId, buyerId, offerPrice, expiresAt);
-        return exchangeRequestRepository.save(request);
+        ExchangeRequest saved = exchangeRequestRepository.save(request);
+        log.info("교환 신청 완료 - postId: {}, buyerId: {}, buyerTicketId: {}, offerPrice: {}", postId, buyerId, buyerTicketId, offerPrice);
+        tradePostEventPublisher.publishNewRequest(postId, offerPrice);
+        return saved;
     }
 
     @Override
@@ -66,6 +78,7 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
             throw new BusinessException(ExchangeRequestCode.EXCHANGE_REQUEST_NOT_OWNER);
         }
         request.cancel();
+        log.info("교환 신청 취소 - requestId: {}, buyerId: {}", requestId, buyerId);
     }
 
     @Override
@@ -96,6 +109,7 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
                 clock
         );
         negotiationRepository.save(negotiation);
+        log.info("구매자 선택 + 협상 시작 - requestId: {}, sellerId: {}, buyerId: {}", requestId, sellerId, selectedRequest.getBuyerId());
     }
 
     @Override

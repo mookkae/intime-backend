@@ -9,12 +9,14 @@ import com.intime.domain.waiting.WaitingCode;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.domain.waiting.WaitingTicketRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Stream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -49,6 +51,9 @@ public class DealServiceImpl implements DealService {
 
         sellerTicket.reassignTo(negotiation.getBuyerId());
         buyerTicket.reassignTo(negotiation.getSellerId());
+        log.info("순번 소유자 교환 - sellerTicketId: {} → buyerId: {}, buyerTicketId: {} → sellerId: {}",
+                sellerTicket.getId(), negotiation.getBuyerId(),
+                buyerTicket.getId(), negotiation.getSellerId());
 
         Deal deal = Deal.create(negotiation);
         return dealRepository.save(deal);

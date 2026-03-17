@@ -1,8 +1,10 @@
 package com.intime.application.waiting;
 
 import com.intime.common.exception.BusinessException;
+import com.intime.application.trade.TradePostEventPublisher;
 import com.intime.domain.negotiation.Negotiation;
 import com.intime.domain.negotiation.NegotiationRepository;
+import com.intime.domain.trade.ExchangeRequestRepository;
 import com.intime.domain.trade.TradePostRepository;
 import com.intime.domain.trade.TradePostStatus;
 import com.intime.domain.waiting.WaitingCode;
@@ -23,6 +25,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,10 +49,16 @@ class WaitingServiceTest {
     private TradePostRepository tradePostRepository;
 
     @Mock
+    private ExchangeRequestRepository exchangeRequestRepository;
+
+    @Mock
     private NegotiationRepository negotiationRepository;
 
     @Mock
     private WaitingEventPublisher waitingEventPublisher;
+
+    @Mock
+    private TradePostEventPublisher tradePostEventPublisher;
 
     @Mock
     private Clock clock;
@@ -74,6 +83,9 @@ class WaitingServiceTest {
         void registerFirst() {
             // given
             setupClock();
+            given(waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
+                    1L, 1L, FIXED_DATE, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
+                    .willReturn(false);
             given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, FIXED_DATE))
                     .willReturn(Optional.empty());
             given(waitingTicketRepository.save(any(WaitingTicket.class)))
@@ -93,6 +105,9 @@ class WaitingServiceTest {
             // given
             setupClock();
             WaitingTicket existing = WaitingTicketFixture.createTicket(1L, 1L, 2L, 3, 2);
+            given(waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
+                    1L, 1L, FIXED_DATE, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
+                    .willReturn(false);
             given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, FIXED_DATE))
                     .willReturn(Optional.of(existing));
             given(waitingTicketRepository.save(any(WaitingTicket.class)))
@@ -106,10 +121,29 @@ class WaitingServiceTest {
         }
 
         @Test
+        @DisplayName("실패 : 동일 가게 WAITING/CALLED 상태 중복 등록 시 예외")
+        void registerDuplicate() {
+            // given
+            setupClock();
+            given(waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
+                    1L, 1L, FIXED_DATE, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
+                    .willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> waitingService.register(1L, 1L, 2))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(WaitingCode.WAITING_DUPLICATE);
+        }
+
+        @Test
         @DisplayName("실패 : 순번 충돌 시 등록 실패 예외")
         void registerConflict() {
             // given
             setupClock();
+            given(waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
+                    1L, 1L, FIXED_DATE, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
+                    .willReturn(false);
             given(waitingTicketRepository.findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(1L, FIXED_DATE))
                     .willReturn(Optional.empty());
             given(waitingTicketRepository.save(any(WaitingTicket.class)))
