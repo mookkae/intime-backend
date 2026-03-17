@@ -20,7 +20,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TradePostService 단위 테스트")
@@ -34,6 +36,12 @@ class TradePostServiceTest {
 
     @Mock
     private WaitingTicketRepository waitingTicketRepository;
+
+    @Mock
+    private ExchangeRequestRepository exchangeRequestRepository;
+
+    @Mock
+    private TradePostEventPublisher tradePostEventPublisher;
 
     @Nested
     @DisplayName("register 메서드")
@@ -124,6 +132,38 @@ class TradePostServiceTest {
             // when & then
             assertThatThrownBy(() -> tradePostService.withdraw(1L, 999L))
                     .isInstanceOf(BusinessException.class);
+        }
+
+        @Test
+        @DisplayName("성공 : OPEN 포스트 철회 시 PENDING 신청 일괄 취소 + WebSocket 발행")
+        void withdrawCancelsPendingRequestsAndPublishesEvent() {
+            // given
+            TradePost post = TradePostFixture.createPost(1L, 1L, 1L, 1L);
+            given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
+
+            // when
+            tradePostService.withdraw(1L, 1L);
+
+            // then
+            assertThat(post.getStatus()).isEqualTo(TradePostStatus.CANCELLED);
+            verify(exchangeRequestRepository).cancelAllPendingByTradePostId(
+                    eq(1L), eq(ExchangeRequestStatus.PENDING), eq(ExchangeRequestStatus.CANCELLED));
+            verify(tradePostEventPublisher).publishPostCancelled(1L);
+        }
+
+        @Test
+        @DisplayName("실패 : NEGOTIATING 상태 포스트 철회 시 예외")
+        void withdrawNegotiatingPost() {
+            // given
+            TradePost post = TradePostFixture.createPost(1L, 1L, 1L, 1L);
+            post.startNegotiation();
+            given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
+
+            // when & then
+            assertThatThrownBy(() -> tradePostService.withdraw(1L, 1L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("baseCode")
+                    .isEqualTo(TradePostCode.TRADE_POST_INVALID_STATE);
         }
     }
 }
