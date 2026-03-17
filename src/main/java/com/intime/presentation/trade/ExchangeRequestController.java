@@ -52,4 +52,13 @@ public class ExchangeRequestController implements ExchangeRequestApi {
         exchangeRequestService.selectBuyerAndStartNegotiation(requestId, memberId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/api/v1/exchange-requests/my")
+    public ResponseEntity<List<ExchangeRequestResponse>> getMyRequests(
+            @RequestHeader("X-Member-Id") Long memberId
+    ) {
+        return ResponseEntity.ok(exchangeRequestService.getMyRequests(memberId).stream()
+                .map(ExchangeRequestResponse::from)
+                .toList());
+    }
 }
