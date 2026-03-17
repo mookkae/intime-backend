@@ -7,11 +7,13 @@ import com.intime.domain.waiting.WaitingTicket;
 import com.intime.domain.waiting.WaitingTicketRepository;
 import com.intime.domain.waiting.WaitingCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -19,6 +21,8 @@ public class TradePostServiceImpl implements TradePostService {
 
     private final TradePostRepository tradePostRepository;
     private final WaitingTicketRepository waitingTicketRepository;
+    private final ExchangeRequestRepository exchangeRequestRepository;
+    private final TradePostEventPublisher tradePostEventPublisher;
 
     @Override
     @Transactional
@@ -39,7 +43,9 @@ public class TradePostServiceImpl implements TradePostService {
         }
 
         TradePost post = TradePost.create(ticketId, sellerId, ticket.getStoreId(), price);
-        return tradePostRepository.save(post);
+        TradePost saved = tradePostRepository.save(post);
+        log.info("판매 게시글 등록 - ticketId: {}, sellerId: {}, price: {}", ticketId, sellerId, price);
+        return saved;
     }
 
     @Override
@@ -49,7 +55,15 @@ public class TradePostServiceImpl implements TradePostService {
         if (!post.isOwnedBy(sellerId)) {
             throw new BusinessException(TradePostCode.TRADE_POST_NOT_OWNER);
         }
+        if (post.getStatus() != TradePostStatus.OPEN) {
+            throw new BusinessException(TradePostCode.TRADE_POST_INVALID_STATE);
+        }
         post.cancel();
+        tradePostRepository.saveAndFlush(post); // @Modifying clearAutomatically 이전에 flush 보장
+        exchangeRequestRepository.cancelAllPendingByTradePostId(
+                postId, ExchangeRequestStatus.PENDING, ExchangeRequestStatus.CANCELLED);
+        tradePostEventPublisher.publishPostCancelled(postId);
+        log.info("판매 게시글 철회 - postId: {}, sellerId: {}", postId, sellerId);
     }
 
     @Override
