@@ -99,7 +99,7 @@ public class Negotiation extends BaseTimeEntity {
     }
 
     // 카운터 오퍼 최대 도달 시 즉시 FINAL_ROUND로 전환돼서 이구동성 게임 하듯
-    public void makeOffer(Long memberId, Long price, Clock clock) {
+    public void makeOffer(Long memberId, Long price) {
         validateNegotiating();
         if (this.lastOfferedBy.equals(memberId)) {
             throw new BusinessException(NegotiationCode.NOT_YOUR_TURN);
@@ -107,7 +107,6 @@ public class Negotiation extends BaseTimeEntity {
         this.currentPrice = price;
         this.lastOfferedBy = memberId;
         this.offerCount++;
-        this.expiresAt = LocalDateTime.now(clock).plusMinutes(NEGOTIATION_TTL_MINUTES);
 
         if (this.offerCount >= MAX_OFFERS) {
             this.status = NegotiationStatus.FINAL_ROUND;
@@ -159,7 +158,7 @@ public class Negotiation extends BaseTimeEntity {
                 this.status = NegotiationStatus.ACCEPTED;
                 return true;
             } else {
-                expire();
+                fail();
                 return false;
             }
         }
@@ -179,6 +178,13 @@ public class Negotiation extends BaseTimeEntity {
             throw new BusinessException(NegotiationCode.NEGOTIATION_INVALID_STATE);
         }
         this.status = NegotiationStatus.EXPIRED;
+    }
+
+    private void fail() {
+        if (this.status != NegotiationStatus.FINAL_ROUND) {
+            throw new BusinessException(NegotiationCode.NEGOTIATION_INVALID_STATE);
+        }
+        this.status = NegotiationStatus.FAILED;
     }
 
     public boolean isParticipant(Long memberId) {

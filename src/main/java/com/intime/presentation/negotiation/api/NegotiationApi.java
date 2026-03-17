@@ -51,4 +51,9 @@ public interface NegotiationApi {
     @ApiResponse(responseCode = "200", description = "협상 조회 성공")
     @GetMapping("/api/v1/negotiations/{negotiationId}")
     ResponseEntity<NegotiationResponse> getNegotiation(@PathVariable Long negotiationId);
+
+    @Operation(summary = "교환 신청으로 협상 조회")
+    @ApiResponse(responseCode = "200", description = "협상 조회 성공")
+    @GetMapping("/api/v1/exchange-requests/{requestId}/negotiation")
+    ResponseEntity<NegotiationResponse> getNegotiationByExchangeRequestId(@PathVariable Long requestId);
 }

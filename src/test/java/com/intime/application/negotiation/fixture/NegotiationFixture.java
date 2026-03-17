@@ -42,11 +42,11 @@ public class NegotiationFixture {
      */
     public static Negotiation createFinalRoundNegotiation() {
         Negotiation negotiation = createNegotiation(1L, 1L, 1L, 2L, 10L, 20L, 10000L);
-        negotiation.makeOffer(1L, 9000L, FIXED_CLOCK); // 2
-        negotiation.makeOffer(2L, 8500L, FIXED_CLOCK); // 3
-        negotiation.makeOffer(1L, 8000L, FIXED_CLOCK); // 4
-        negotiation.makeOffer(2L, 7500L, FIXED_CLOCK); // 5
-        negotiation.makeOffer(1L, 7000L, FIXED_CLOCK); // 6 → FINAL_ROUND
+        negotiation.makeOffer(1L, 9000L); // 2
+        negotiation.makeOffer(2L, 8500L); // 3
+        negotiation.makeOffer(1L, 8000L); // 4
+        negotiation.makeOffer(2L, 7500L); // 5
+        negotiation.makeOffer(1L, 7000L); // 6 → FINAL_ROUND
         return negotiation;
     }
 }

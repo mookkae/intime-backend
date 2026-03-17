@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -51,7 +52,7 @@ class NegotiationTest {
         void makeOfferSuccess() {
             Negotiation negotiation = createNegotiation();
 
-            negotiation.makeOffer(1L, 8000L, FIXED_CLOCK);
+            negotiation.makeOffer(1L, 8000L);
 
             assertThat(negotiation.getCurrentPrice()).isEqualTo(8000L);
             assertThat(negotiation.getLastOfferedBy()).isEqualTo(1L);
@@ -64,7 +65,7 @@ class NegotiationTest {
             Negotiation negotiation = createNegotiation();
             // lastOfferedBy=buyer(2L), buyer가 또 오퍼하면 예외
 
-            assertThatThrownBy(() -> negotiation.makeOffer(2L, 9000L, FIXED_CLOCK))
+            assertThatThrownBy(() -> negotiation.makeOffer(2L, 9000L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(NegotiationCode.NOT_YOUR_TURN);
@@ -76,7 +77,7 @@ class NegotiationTest {
             Negotiation negotiation = createNegotiation();
             negotiation.reject();
 
-            assertThatThrownBy(() -> negotiation.makeOffer(1L, 8000L, FIXED_CLOCK))
+            assertThatThrownBy(() -> negotiation.makeOffer(1L, 8000L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(NegotiationCode.NEGOTIATION_INVALID_STATE);
@@ -87,14 +88,14 @@ class NegotiationTest {
         void makeOfferTransitionsToFinalRound() {
             Negotiation negotiation = createNegotiation();
             // offerCount=1(create), 2, 3, 4, 5, 6 → FINAL_ROUND
-            negotiation.makeOffer(1L, 9000L, FIXED_CLOCK); // 2
-            negotiation.makeOffer(2L, 8500L, FIXED_CLOCK); // 3
-            negotiation.makeOffer(1L, 8000L, FIXED_CLOCK); // 4
-            negotiation.makeOffer(2L, 7500L, FIXED_CLOCK); // 5
+            negotiation.makeOffer(1L, 9000L); // 2
+            negotiation.makeOffer(2L, 8500L); // 3
+            negotiation.makeOffer(1L, 8000L); // 4
+            negotiation.makeOffer(2L, 7500L); // 5
 
             assertThat(negotiation.getStatus()).isEqualTo(NegotiationStatus.NEGOTIATING);
 
-            negotiation.makeOffer(1L, 7000L, FIXED_CLOCK); // 6 → FINAL_ROUND
+            negotiation.makeOffer(1L, 7000L); // 6 → FINAL_ROUND
 
             assertThat(negotiation.getStatus()).isEqualTo(NegotiationStatus.FINAL_ROUND);
             assertThat(negotiation.getOfferCount()).isEqualTo(6);
@@ -174,11 +175,11 @@ class NegotiationTest {
 
         private Negotiation createFinalRoundNegotiation() {
             Negotiation negotiation = createNegotiation();
-            negotiation.makeOffer(1L, 9000L, FIXED_CLOCK);
-            negotiation.makeOffer(2L, 8500L, FIXED_CLOCK);
-            negotiation.makeOffer(1L, 8000L, FIXED_CLOCK);
-            negotiation.makeOffer(2L, 7500L, FIXED_CLOCK);
-            negotiation.makeOffer(1L, 7000L, FIXED_CLOCK); // 6 → FINAL_ROUND
+            negotiation.makeOffer(1L, 9000L);
+            negotiation.makeOffer(2L, 8500L);
+            negotiation.makeOffer(1L, 8000L);
+            negotiation.makeOffer(2L, 7500L);
+            negotiation.makeOffer(1L, 7000L); // 6 → FINAL_ROUND
             return negotiation;
         }
 
@@ -209,7 +210,7 @@ class NegotiationTest {
         }
 
         @Test
-        @DisplayName("양쪽 제출, buyerPrice < sellerPrice → 거래 불성사, EXPIRED")
+        @DisplayName("양쪽 제출, buyerPrice < sellerPrice → 거래 불성사, FAILED")
         void submitBothSidesNoDeal() {
             Negotiation negotiation = createFinalRoundNegotiation();
             negotiation.submitFinalOffer(2L, 5000L); // buyer
@@ -217,7 +218,7 @@ class NegotiationTest {
             boolean result = negotiation.submitFinalOffer(1L, 8000L); // seller
 
             assertThat(result).isFalse();
-            assertThat(negotiation.getStatus()).isEqualTo(NegotiationStatus.EXPIRED);
+            assertThat(negotiation.getStatus()).isEqualTo(NegotiationStatus.FAILED);
         }
 
         @Test
@@ -273,11 +274,11 @@ class NegotiationTest {
         @DisplayName("성공 : FINAL_ROUND → CANCELLED")
         void cancelFromFinalRound() {
             Negotiation negotiation = createNegotiation();
-            negotiation.makeOffer(1L, 9000L, FIXED_CLOCK);
-            negotiation.makeOffer(2L, 8500L, FIXED_CLOCK);
-            negotiation.makeOffer(1L, 8000L, FIXED_CLOCK);
-            negotiation.makeOffer(2L, 7500L, FIXED_CLOCK);
-            negotiation.makeOffer(1L, 7000L, FIXED_CLOCK);
+            negotiation.makeOffer(1L, 9000L);
+            negotiation.makeOffer(2L, 8500L);
+            negotiation.makeOffer(1L, 8000L);
+            negotiation.makeOffer(2L, 7500L);
+            negotiation.makeOffer(1L, 7000L);
 
             negotiation.cancel();
 
@@ -315,11 +316,11 @@ class NegotiationTest {
         @DisplayName("성공 : FINAL_ROUND → EXPIRED")
         void expireFromFinalRound() {
             Negotiation negotiation = createNegotiation();
-            negotiation.makeOffer(1L, 9000L, FIXED_CLOCK);
-            negotiation.makeOffer(2L, 8500L, FIXED_CLOCK);
-            negotiation.makeOffer(1L, 8000L, FIXED_CLOCK);
-            negotiation.makeOffer(2L, 7500L, FIXED_CLOCK);
-            negotiation.makeOffer(1L, 7000L, FIXED_CLOCK);
+            negotiation.makeOffer(1L, 9000L);
+            negotiation.makeOffer(2L, 8500L);
+            negotiation.makeOffer(1L, 8000L);
+            negotiation.makeOffer(2L, 7500L);
+            negotiation.makeOffer(1L, 7000L);
 
             negotiation.expire();
 

@@ -11,7 +11,9 @@ public record NegotiationResponse(
         Long currentPrice,
         int offerCount,
         LocalDateTime expiresAt,
-        Long lastOfferedBy
+        Long lastOfferedBy,
+        Long sellerId,
+        Long buyerId
 ) {
     public static NegotiationResponse from(Negotiation negotiation) {
         return new NegotiationResponse(
@@ -20,7 +22,9 @@ public record NegotiationResponse(
                 negotiation.getCurrentPrice(),
                 negotiation.getOfferCount(),
                 negotiation.getExpiresAt(),
-                negotiation.getLastOfferedBy()
+                negotiation.getLastOfferedBy(),
+                negotiation.getSellerId(),
+                negotiation.getBuyerId()
         );
     }
 }
