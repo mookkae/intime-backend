@@ -72,14 +72,11 @@ class NegotiationServiceTest {
     class MakeOffer {
 
         @Test
-        @DisplayName("성공 : 상대방이 오퍼 제출, TTL 리셋")
+        @DisplayName("성공 : 상대방이 오퍼 제출")
         void makeOfferSuccess() {
             // given
-            setupClock();
             Negotiation negotiation = NegotiationFixture.createNegotiation();
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
-
-            LocalDateTime beforeOffer = negotiation.getExpiresAt();
 
             // when - seller(1L)이 카운터 오퍼 (lastOfferedBy=buyer(2L))
             negotiationService.makeOffer(1L, 1L, 8000L);
@@ -88,7 +85,6 @@ class NegotiationServiceTest {
             assertThat(negotiation.getCurrentPrice()).isEqualTo(8000L);
             assertThat(negotiation.getLastOfferedBy()).isEqualTo(1L);
             assertThat(negotiation.getOfferCount()).isEqualTo(2);
-            assertThat(negotiation.getExpiresAt()).isAfterOrEqualTo(beforeOffer);
         }
 
         @Test
@@ -247,7 +243,7 @@ class NegotiationServiceTest {
         }
 
         @Test
-        @DisplayName("성공 : 양쪽 제출 완료, 구매자 < 판매자 → 거래 불성사, EXPIRED")
+        @DisplayName("성공 : 양쪽 제출 완료, 구매자 < 판매자 → 거래 불성사, FAILED")
         void submitFinalOfferNoDeal() {
             // given
             Negotiation negotiation = NegotiationFixture.createFinalRoundNegotiation();
@@ -264,7 +260,7 @@ class NegotiationServiceTest {
             negotiationService.submitFinalOffer(1L, 1L, 8000L);
 
             // then
-            assertThat(negotiation.getStatus()).isEqualTo(NegotiationStatus.EXPIRED);
+            assertThat(negotiation.getStatus()).isEqualTo(NegotiationStatus.FAILED);
         }
 
         @Test
