@@ -34,6 +34,9 @@ public interface WaitingTicketRepository extends JpaRepository<WaitingTicket, Lo
     // 교환한다고 기다려주거나 미루기 시
     List<WaitingTicket> findByPendingCallAtBeforeAndStatus(LocalDateTime threshold, WaitingStatus status);
 
+    // 중복 웨이팅 등록 체크
+    boolean existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(Long memberId, Long storeId, LocalDate date, List<WaitingStatus> statuses);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT wt FROM WaitingTicket wt WHERE wt.id IN :ids ORDER BY wt.id ASC")
     List<WaitingTicket> findByIdsWithLock(@Param("ids") List<Long> ids);

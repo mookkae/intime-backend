@@ -14,7 +14,8 @@ public enum ExchangeRequestCode implements BaseCode {
     EXCHANGE_REQUEST_INVALID_STATE("EXCHANGE_REQUEST_INVALID_STATE", HttpStatus.BAD_REQUEST, "현재 상태에서 수행할 수 없는 작업입니다."),
     EXCHANGE_REQUEST_SELF_POST("EXCHANGE_REQUEST_SELF_POST", HttpStatus.BAD_REQUEST, "본인의 판매 게시글에 신청할 수 없습니다."),
     BUYER_TICKET_NOT_WAITING("BUYER_TICKET_NOT_WAITING", HttpStatus.BAD_REQUEST, "WAITING 상태의 대기표로만 교환 신청할 수 있습니다."),
-    BUYER_TICKET_NOT_OWNER("BUYER_TICKET_NOT_OWNER", HttpStatus.FORBIDDEN, "본인의 대기표로만 교환 신청할 수 있습니다.");
+    BUYER_TICKET_NOT_OWNER("BUYER_TICKET_NOT_OWNER", HttpStatus.FORBIDDEN, "본인의 대기표로만 교환 신청할 수 있습니다."),
+    EXCHANGE_REQUEST_DUPLICATE("EXCHANGE_REQUEST_DUPLICATE", HttpStatus.CONFLICT, "이미 신청한 교환입니다.");
 
     private final String code;
     private final HttpStatus status;
