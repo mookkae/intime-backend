@@ -10,6 +10,12 @@ public interface TradePostRepository extends JpaRepository<TradePost, Long> {
 
     // 매장 별 거래 목록 조회
     List<TradePost> findByStoreIdAndStatus(Long storeId, TradePostStatus status);
-    
+
     Optional<TradePost> findByWaitingTicketIdAndStatus(Long waitingTicketId, TradePostStatus status);
+
+    // 내 판매 게시글 목록
+    List<TradePost> findBySellerIdOrderByCreatedAtDesc(Long sellerId);
+
+    // 내 티켓 목록 enrichment
+    List<TradePost> findByWaitingTicketIdInAndStatus(List<Long> waitingTicketIds, TradePostStatus status);
 }

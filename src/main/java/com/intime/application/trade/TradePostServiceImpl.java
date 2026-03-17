@@ -71,6 +71,19 @@ public class TradePostServiceImpl implements TradePostService {
         return tradePostRepository.findByStoreIdAndStatus(storeId, TradePostStatus.OPEN);
     }
 
+    @Override
+    public List<TradePost> getMyTradePosts(Long sellerId) {
+        return tradePostRepository.findBySellerIdOrderByCreatedAtDesc(sellerId);
+    }
+
+    @Override
+    public List<TradePost> getOpenPostsByTicketIds(List<Long> ticketIds) {
+        if (ticketIds.isEmpty()) {
+            return List.of();
+        }
+        return tradePostRepository.findByWaitingTicketIdInAndStatus(ticketIds, TradePostStatus.OPEN);
+    }
+
     private TradePost getPost(Long postId) {
         return tradePostRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException(TradePostCode.TRADE_POST_NOT_FOUND));
