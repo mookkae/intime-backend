@@ -6,6 +6,8 @@ public interface NegotiationService {
 
     Negotiation getNegotiation(Long negotiationId);
 
+    Negotiation getNegotiationByExchangeRequestId(Long exchangeRequestId);
+
     Negotiation makeOffer(Long negotiationId, Long memberId, Long price);
 
     void accept(Long negotiationId, Long memberId);

@@ -59,4 +59,10 @@ public class NegotiationController implements NegotiationApi {
         Negotiation negotiation = negotiationService.getNegotiation(negotiationId);
         return ResponseEntity.ok(NegotiationResponse.from(negotiation));
     }
+
+    @GetMapping("/api/v1/exchange-requests/{requestId}/negotiation")
+    public ResponseEntity<NegotiationResponse> getNegotiationByExchangeRequestId(@PathVariable Long requestId) {
+        Negotiation negotiation = negotiationService.getNegotiationByExchangeRequestId(requestId);
+        return ResponseEntity.ok(NegotiationResponse.from(negotiation));
+    }
 }
