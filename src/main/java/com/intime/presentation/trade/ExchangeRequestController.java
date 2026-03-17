@@ -4,6 +4,7 @@ import com.intime.application.trade.ExchangeRequestService;
 import com.intime.domain.trade.ExchangeRequest;
 import com.intime.presentation.trade.dto.ExchangeRequestCreateRequest;
 import com.intime.presentation.trade.dto.ExchangeRequestResponse;
+import com.intime.presentation.trade.api.ExchangeRequestApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-public class ExchangeRequestController {
+public class ExchangeRequestController implements ExchangeRequestApi {
 
     private final ExchangeRequestService exchangeRequestService;
 

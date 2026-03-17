@@ -4,6 +4,7 @@ import com.intime.application.trade.TradePostService;
 import com.intime.domain.trade.TradePost;
 import com.intime.presentation.trade.dto.TradePostCreateRequest;
 import com.intime.presentation.trade.dto.TradePostResponse;
+import com.intime.presentation.trade.api.TradePostApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-public class TradePostController {
+public class TradePostController implements TradePostApi {
 
     private final TradePostService tradePostService;
 

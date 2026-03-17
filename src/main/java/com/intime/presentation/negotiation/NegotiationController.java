@@ -5,13 +5,14 @@ import com.intime.domain.negotiation.Negotiation;
 import com.intime.presentation.negotiation.dto.NegotiationFinalOfferRequest;
 import com.intime.presentation.negotiation.dto.NegotiationOfferRequest;
 import com.intime.presentation.negotiation.dto.NegotiationResponse;
+import com.intime.presentation.negotiation.api.NegotiationApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-public class NegotiationController {
+public class NegotiationController implements NegotiationApi {
 
     private final NegotiationService negotiationService;
 

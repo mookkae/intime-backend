@@ -4,6 +4,7 @@ import com.intime.application.store.StoreService;
 import com.intime.domain.store.Store;
 import com.intime.presentation.store.dto.StoreCreateRequest;
 import com.intime.presentation.store.dto.StoreResponse;
+import com.intime.presentation.store.api.StoreApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +15,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/stores")
-public class StoreController {
+public class StoreController implements StoreApi {
 
     private final StoreService storeService;
 

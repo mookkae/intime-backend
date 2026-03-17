@@ -4,6 +4,7 @@ import com.intime.application.waiting.WaitingService;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.presentation.waiting.dto.WaitingRegisterRequest;
 import com.intime.presentation.waiting.dto.WaitingTicketResponse;
+import com.intime.presentation.waiting.api.WaitingApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-public class WaitingController {
+public class WaitingController implements WaitingApi {
 
     private final WaitingService waitingService;
 

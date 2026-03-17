@@ -16,6 +16,12 @@ spring:
         format_sql: true
     open-in-view: false
 
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+
 logging:
   level:
     org.hibernate.SQL: debug
