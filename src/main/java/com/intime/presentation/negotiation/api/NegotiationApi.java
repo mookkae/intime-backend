@@ -1,8 +1,8 @@
 package com.intime.presentation.negotiation.api;
 
+import com.intime.application.negotiation.dto.NegotiationInfo;
 import com.intime.presentation.negotiation.dto.NegotiationFinalOfferRequest;
 import com.intime.presentation.negotiation.dto.NegotiationOfferRequest;
-import com.intime.presentation.negotiation.dto.NegotiationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -16,7 +16,7 @@ public interface NegotiationApi {
     @Operation(summary = "오퍼 제시")
     @ApiResponse(responseCode = "200", description = "오퍼 제시 성공")
     @PostMapping("/api/v1/negotiations/{negotiationId}/offers")
-    ResponseEntity<NegotiationResponse> makeOffer(
+    ResponseEntity<NegotiationInfo> makeOffer(
             @PathVariable Long negotiationId,
             @Parameter(description = "회원 ID") @RequestHeader("X-Member-Id") Long memberId,
             @RequestBody NegotiationOfferRequest request
@@ -50,10 +50,10 @@ public interface NegotiationApi {
     @Operation(summary = "협상 조회")
     @ApiResponse(responseCode = "200", description = "협상 조회 성공")
     @GetMapping("/api/v1/negotiations/{negotiationId}")
-    ResponseEntity<NegotiationResponse> getNegotiation(@PathVariable Long negotiationId);
+    ResponseEntity<NegotiationInfo> getNegotiation(@PathVariable Long negotiationId);
 
     @Operation(summary = "교환 신청으로 협상 조회")
     @ApiResponse(responseCode = "200", description = "협상 조회 성공")
     @GetMapping("/api/v1/exchange-requests/{requestId}/negotiation")
-    ResponseEntity<NegotiationResponse> getNegotiationByExchangeRequestId(@PathVariable Long requestId);
+    ResponseEntity<NegotiationInfo> getNegotiationByExchangeRequestId(@PathVariable Long requestId);
 }
