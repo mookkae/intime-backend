@@ -1,11 +1,11 @@
 package com.intime.presentation.member;
 
 import com.intime.application.member.MemberService;
-import com.intime.domain.member.Member;
-import com.intime.presentation.member.dto.MemberResponse;
+import com.intime.application.member.dto.MemberInfo;
+import com.intime.application.member.dto.MemberSignupCommand;
+import com.intime.presentation.member.api.MemberApi;
 import com.intime.presentation.member.dto.NicknameUpdateRequest;
 import com.intime.presentation.member.dto.SignupRequest;
-import com.intime.presentation.member.api.MemberApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,21 +19,21 @@ public class MemberController implements MemberApi {
     private final MemberService memberService;
 
     @PostMapping("/signup")
-    public ResponseEntity<MemberResponse> signup(@RequestBody SignupRequest request) {
-        Member member = memberService.signup(request.email(), request.password());
-        return ResponseEntity.status(HttpStatus.CREATED).body(MemberResponse.from(member));
+    public ResponseEntity<MemberInfo> signup(@RequestBody SignupRequest request) {
+        MemberSignupCommand command = new MemberSignupCommand(request.email(), request.password());
+        return ResponseEntity.status(HttpStatus.CREATED).body(memberService.signup(command));
     }
 
     @GetMapping("/{memberId}")
-    public ResponseEntity<MemberResponse> getMember(@PathVariable Long memberId) {
-        return ResponseEntity.ok(MemberResponse.from(memberService.getMember(memberId)));
+    public ResponseEntity<MemberInfo> getMember(@PathVariable Long memberId) {
+        return ResponseEntity.ok(memberService.getMember(memberId));
     }
 
     @PatchMapping("/{memberId}")
-    public ResponseEntity<MemberResponse> updateNickname(
+    public ResponseEntity<MemberInfo> updateNickname(
             @PathVariable Long memberId,
             @RequestBody NicknameUpdateRequest request
     ) {
-        return ResponseEntity.ok(MemberResponse.from(memberService.updateNickname(memberId, request.nickname())));
+        return ResponseEntity.ok(memberService.updateNickname(memberId, request.nickname()));
     }
 }

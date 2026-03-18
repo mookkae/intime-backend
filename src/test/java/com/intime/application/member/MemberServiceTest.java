@@ -1,5 +1,7 @@
 package com.intime.application.member;
 
+import com.intime.application.member.dto.MemberInfo;
+import com.intime.application.member.dto.MemberSignupCommand;
 import com.intime.common.exception.BusinessException;
 import com.intime.domain.member.Member;
 import com.intime.domain.member.MemberCode;
@@ -38,14 +40,15 @@ class MemberServiceTest {
         @DisplayName("성공 : 회원가입 시 '기다려' 접두사 닉네임이 생성된다")
         void signup() {
             // given
+            MemberSignupCommand command = new MemberSignupCommand("test@email.com", "password123");
             given(memberRepository.save(any(Member.class))).willAnswer(invocation -> invocation.getArgument(0));
 
             // when
-            Member result = memberService.signup("test@email.com", "password123");
+            MemberInfo result = memberService.signup(command);
 
             // then
-            assertThat(result.getEmail()).isEqualTo("test@email.com");
-            assertThat(result.getNickname()).startsWith("기다려");
+            assertThat(result.email()).isEqualTo("test@email.com");
+            assertThat(result.nickname()).startsWith("기다려");
         }
     }
 
@@ -61,10 +64,10 @@ class MemberServiceTest {
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
 
             // when
-            Member result = memberService.getMember(1L);
+            MemberInfo result = memberService.getMember(1L);
 
             // then
-            assertThat(result.getId()).isEqualTo(1L);
+            assertThat(result.id()).isEqualTo(1L);
         }
 
         @Test
@@ -93,10 +96,10 @@ class MemberServiceTest {
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
 
             // when
-            Member result = memberService.updateNickname(1L, "김철수");
+            MemberInfo result = memberService.updateNickname(1L, "김철수");
 
             // then
-            assertThat(result.getNickname()).isEqualTo("김철수");
+            assertThat(result.nickname()).isEqualTo("김철수");
         }
     }
 }
