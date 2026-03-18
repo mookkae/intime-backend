@@ -1,5 +1,7 @@
 package com.intime.application.store;
 
+import com.intime.application.store.dto.StoreCreateCommand;
+import com.intime.application.store.dto.StoreInfo;
 import com.intime.common.exception.BusinessException;
 import com.intime.domain.store.Store;
 import com.intime.domain.store.StoreCode;
@@ -39,15 +41,16 @@ class StoreServiceTest {
         @DisplayName("성공 : 가게 생성")
         void createStore() {
             // given
+            StoreCreateCommand command = new StoreCreateCommand("하뚜분식", "서울시 양천구", 30);
             given(storeRepository.save(any(Store.class))).willAnswer(inv -> inv.getArgument(0));
 
             // when
-            Store result = storeService.createStore("하뚜분식", "서울시 양천구", 30);
+            StoreInfo result = storeService.createStore(command);
 
             // then
-            assertThat(result.getName()).isEqualTo("하뚜분식");
-            assertThat(result.getAddress()).isEqualTo("서울시 양천구");
-            assertThat(result.getEstimatedWaitMinutes()).isEqualTo(30);
+            assertThat(result.name()).isEqualTo("하뚜분식");
+            assertThat(result.address()).isEqualTo("서울시 양천구");
+            assertThat(result.estimatedWaitMinutes()).isEqualTo(30);
         }
     }
 
@@ -63,10 +66,10 @@ class StoreServiceTest {
             given(storeRepository.findById(1L)).willReturn(Optional.of(store));
 
             // when
-            Store result = storeService.getStore(1L);
+            StoreInfo result = storeService.getStore(1L);
 
             // then
-            assertThat(result.getId()).isEqualTo(1L);
+            assertThat(result.id()).isEqualTo(1L);
         }
 
         @Test
@@ -98,7 +101,7 @@ class StoreServiceTest {
             given(storeRepository.findAll()).willReturn(stores);
 
             // when
-            List<Store> result = storeService.getStores();
+            List<StoreInfo> result = storeService.getStores();
 
             // then
             assertThat(result).hasSize(2);

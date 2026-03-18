@@ -1,14 +1,15 @@
 package com.intime.application.store;
 
-import com.intime.domain.store.Store;
+import com.intime.application.store.dto.StoreCreateCommand;
+import com.intime.application.store.dto.StoreInfo;
 
 import java.util.List;
 
 public interface StoreService {
 
-    Store createStore(String name, String address, int estimatedWaitMinutes);
+    StoreInfo createStore(StoreCreateCommand command);
 
-    Store getStore(Long storeId);
+    StoreInfo getStore(Long storeId);
 
-    List<Store> getStores();
+    List<StoreInfo> getStores();
 }

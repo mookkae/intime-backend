@@ -1,16 +1,16 @@
-package com.intime.presentation.store.dto;
+package com.intime.application.store.dto;
 
 import com.intime.domain.store.Store;
 
-public record StoreResponse(
+public record StoreInfo(
         Long id,
         String name,
         String address,
         int estimatedWaitMinutes
 ) {
 
-    public static StoreResponse from(Store store) {
-        return new StoreResponse(
+    public static StoreInfo from(Store store) {
+        return new StoreInfo(
                 store.getId(),
                 store.getName(),
                 store.getAddress(),
