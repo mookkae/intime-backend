@@ -1,6 +1,6 @@
-package com.intime.application.waiting;
+package com.intime.application.waiting.dto;
 
-public record WaitingPositionResponse(
+public record WaitingPositionInfo(
         Long ticketId,
         int positionNumber,
         int aheadCount,

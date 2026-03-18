@@ -1,14 +1,15 @@
 package com.intime.application.waiting;
 
-import com.intime.domain.waiting.WaitingTicket;
+import com.intime.application.waiting.dto.WaitingRegisterCommand;
+import com.intime.application.waiting.dto.WaitingTicketInfo;
 
 public interface WaitingService {
 
-    WaitingTicket register(Long storeId, Long memberId, int partySize);
+    WaitingTicketInfo register(WaitingRegisterCommand command);
 
     void cancel(Long ticketId, Long memberId);
 
-    WaitingTicket callNext(Long storeId);
+    WaitingTicketInfo callNext(Long storeId);
 
     void confirmSeated(Long ticketId);
 

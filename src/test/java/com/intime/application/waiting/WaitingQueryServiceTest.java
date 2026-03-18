@@ -1,6 +1,10 @@
 package com.intime.application.waiting;
 
+import com.intime.application.waiting.dto.WaitingPositionInfo;
+import com.intime.application.waiting.dto.WaitingTicketInfo;
 import com.intime.domain.store.Store;
+import com.intime.domain.store.StoreRepository;
+import com.intime.domain.trade.TradePostRepository;
 import com.intime.domain.waiting.WaitingStatus;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.domain.waiting.WaitingTicketRepository;
@@ -31,7 +35,10 @@ class WaitingQueryServiceTest {
     private WaitingTicketRepository waitingTicketRepository;
 
     @Mock
-    private com.intime.domain.store.StoreRepository storeRepository;
+    private StoreRepository storeRepository;
+
+    @Mock
+    private TradePostRepository tradePostRepository;
 
     @Nested
     @DisplayName("getStoreQueue 메서드")
@@ -50,11 +57,11 @@ class WaitingQueryServiceTest {
                     .willReturn(tickets);
 
             // when
-            List<WaitingTicket> result = waitingQueryService.getStoreQueue(1L);
+            List<WaitingTicketInfo> result = waitingQueryService.getStoreQueue(1L);
 
             // then
             assertThat(result).hasSize(2);
-            assertThat(result.get(0).getPositionNumber()).isEqualTo(1);
+            assertThat(result.get(0).positionNumber()).isEqualTo(1);
         }
     }
 
@@ -73,7 +80,7 @@ class WaitingQueryServiceTest {
                     .willReturn(tickets);
 
             // when
-            List<WaitingTicket> result = waitingQueryService.getMyTickets(1L);
+            List<WaitingTicketInfo> result = waitingQueryService.getMyTickets(1L);
 
             // then
             assertThat(result).hasSize(1);
@@ -97,7 +104,7 @@ class WaitingQueryServiceTest {
             given(storeRepository.findById(1L)).willReturn(Optional.of(store));
 
             // when
-            WaitingPositionResponse result = waitingQueryService.getMyPosition(1L);
+            WaitingPositionInfo result = waitingQueryService.getMyPosition(1L);
 
             // then
             assertThat(result.aheadCount()).isEqualTo(2);

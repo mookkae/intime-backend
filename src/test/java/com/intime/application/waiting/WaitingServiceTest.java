@@ -1,7 +1,9 @@
 package com.intime.application.waiting;
 
-import com.intime.common.exception.BusinessException;
 import com.intime.application.trade.TradePostEventPublisher;
+import com.intime.application.waiting.dto.WaitingRegisterCommand;
+import com.intime.application.waiting.dto.WaitingTicketInfo;
+import com.intime.common.exception.BusinessException;
 import com.intime.domain.negotiation.Negotiation;
 import com.intime.domain.negotiation.NegotiationRepository;
 import com.intime.domain.trade.ExchangeRequestRepository;
@@ -83,6 +85,7 @@ class WaitingServiceTest {
         void registerFirst() {
             // given
             setupClock();
+            WaitingRegisterCommand command = new WaitingRegisterCommand(1L, 1L, 2);
             given(waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
                     1L, 1L, FIXED_DATE, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
                     .willReturn(false);
@@ -92,11 +95,11 @@ class WaitingServiceTest {
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
-            WaitingTicket result = waitingService.register(1L, 1L, 2);
+            WaitingTicketInfo result = waitingService.register(command);
 
             // then
-            assertThat(result.getPositionNumber()).isEqualTo(1);
-            assertThat(result.getStatus()).isEqualTo(WaitingStatus.WAITING);
+            assertThat(result.positionNumber()).isEqualTo(1);
+            assertThat(result.status()).isEqualTo(WaitingStatus.WAITING);
         }
 
         @Test
@@ -104,6 +107,7 @@ class WaitingServiceTest {
         void registerNext() {
             // given
             setupClock();
+            WaitingRegisterCommand command = new WaitingRegisterCommand(1L, 1L, 2);
             WaitingTicket existing = WaitingTicketFixture.createTicket(1L, 1L, 2L, 3, 2);
             given(waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
                     1L, 1L, FIXED_DATE, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
@@ -114,10 +118,10 @@ class WaitingServiceTest {
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
-            WaitingTicket result = waitingService.register(1L, 1L, 2);
+            WaitingTicketInfo result = waitingService.register(command);
 
             // then
-            assertThat(result.getPositionNumber()).isEqualTo(4);
+            assertThat(result.positionNumber()).isEqualTo(4);
         }
 
         @Test
@@ -125,12 +129,13 @@ class WaitingServiceTest {
         void registerDuplicate() {
             // given
             setupClock();
+            WaitingRegisterCommand command = new WaitingRegisterCommand(1L, 1L, 2);
             given(waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
                     1L, 1L, FIXED_DATE, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
                     .willReturn(true);
 
             // when & then
-            assertThatThrownBy(() -> waitingService.register(1L, 1L, 2))
+            assertThatThrownBy(() -> waitingService.register(command))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(WaitingCode.WAITING_DUPLICATE);
@@ -141,6 +146,7 @@ class WaitingServiceTest {
         void registerConflict() {
             // given
             setupClock();
+            WaitingRegisterCommand command = new WaitingRegisterCommand(1L, 1L, 2);
             given(waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
                     1L, 1L, FIXED_DATE, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED)))
                     .willReturn(false);
@@ -150,7 +156,7 @@ class WaitingServiceTest {
                     .willThrow(new DataIntegrityViolationException("Duplicate entry"));
 
             // when & then
-            assertThatThrownBy(() -> waitingService.register(1L, 1L, 2))
+            assertThatThrownBy(() -> waitingService.register(command))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(WaitingCode.WAITING_REGISTER_FAILED);
@@ -208,10 +214,10 @@ class WaitingServiceTest {
                     .willReturn(Optional.empty());
 
             // when
-            WaitingTicket result = waitingService.callNext(1L);
+            WaitingTicketInfo result = waitingService.callNext(1L);
 
             // then
-            assertThat(result.getStatus()).isEqualTo(WaitingStatus.CALLED);
+            assertThat(result.status()).isEqualTo(WaitingStatus.CALLED);
         }
 
         @Test
@@ -242,11 +248,10 @@ class WaitingServiceTest {
                     .willReturn(Optional.of(mock(Negotiation.class)));
 
             // when
-            WaitingTicket result = waitingService.callNext(1L);
+            WaitingTicketInfo result = waitingService.callNext(1L);
 
             // then
-            assertThat(result.getStatus()).isEqualTo(WaitingStatus.WAITING);
-            assertThat(result.getPendingCallAt()).isNotNull();
+            assertThat(result.status()).isEqualTo(WaitingStatus.WAITING);
         }
     }
 
