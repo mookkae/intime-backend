@@ -16,7 +16,9 @@ import java.time.LocalDateTime;
 @Table(
         name = "exchange_request",
         indexes = {
-                @Index(name = "idx_exchange_request_trade_post", columnList = "trade_post_id"),
+                @Index(name = "idx_exchange_request_trade_post_status", columnList = "trade_post_id, status"),
+                @Index(name = "idx_exchange_request_buyer_ticket_status", columnList = "buyer_ticket_id, status"),
+                @Index(name = "idx_exchange_request_buyer_id", columnList = "buyer_id"),
                 @Index(name = "idx_exchange_request_status_expires", columnList = "status, expires_at")
         }
 )
