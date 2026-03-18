@@ -1,5 +1,7 @@
 package com.intime.application.trade;
 
+import com.intime.application.trade.dto.ExchangeRequestCommand;
+import com.intime.application.trade.dto.ExchangeRequestInfo;
 import com.intime.common.exception.BusinessException;
 import com.intime.domain.negotiation.Negotiation;
 import com.intime.domain.negotiation.NegotiationRepository;
@@ -34,27 +36,28 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
 
     @Override
     @Transactional
-    public ExchangeRequest requestExchange(Long postId, Long buyerTicketId, Long buyerId, Long offerPrice) {
-        TradePost post = getPost(postId);
+    public ExchangeRequestInfo requestExchange(ExchangeRequestCommand command) {
+        TradePost post = getPost(command.postId());
 
         if (post.getStatus() != TradePostStatus.OPEN) {
             throw new BusinessException(TradePostCode.TRADE_POST_INVALID_STATE);
         }
 
-        if (post.isOwnedBy(buyerId)) {
+        if (post.isOwnedBy(command.buyerId())) {
             throw new BusinessException(ExchangeRequestCode.EXCHANGE_REQUEST_SELF_POST);
         }
 
         boolean isDuplicate = exchangeRequestRepository.existsByTradePostIdAndBuyerIdAndStatusIn(
-                postId, buyerId, List.of(ExchangeRequestStatus.PENDING, ExchangeRequestStatus.SELECTED));
+                command.postId(), command.buyerId(),
+                List.of(ExchangeRequestStatus.PENDING, ExchangeRequestStatus.SELECTED));
         if (isDuplicate) {
             throw new BusinessException(ExchangeRequestCode.EXCHANGE_REQUEST_DUPLICATE);
         }
 
-        WaitingTicket buyerTicket = waitingTicketRepository.findById(buyerTicketId)
+        WaitingTicket buyerTicket = waitingTicketRepository.findById(command.buyerTicketId())
                 .orElseThrow(() -> new BusinessException(WaitingCode.WAITING_NOT_FOUND));
 
-        if (!buyerTicket.isOwnedBy(buyerId)) {
+        if (!buyerTicket.isOwnedBy(command.buyerId())) {
             throw new BusinessException(ExchangeRequestCode.BUYER_TICKET_NOT_OWNER);
         }
 
@@ -63,11 +66,13 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
         }
 
         LocalDateTime expiresAt = LocalDateTime.now(clock).plusMinutes(REQUEST_TTL_MINUTES);
-        ExchangeRequest request = ExchangeRequest.create(postId, buyerTicketId, buyerId, offerPrice, expiresAt);
+        ExchangeRequest request = ExchangeRequest.create(
+                command.postId(), command.buyerTicketId(), command.buyerId(), command.offerPrice(), expiresAt);
         ExchangeRequest saved = exchangeRequestRepository.save(request);
-        log.info("교환 신청 완료 - postId: {}, buyerId: {}, buyerTicketId: {}, offerPrice: {}", postId, buyerId, buyerTicketId, offerPrice);
-        tradePostEventPublisher.publishNewRequest(postId, offerPrice);
-        return saved;
+        log.info("교환 신청 완료 - postId: {}, buyerId: {}, buyerTicketId: {}, offerPrice: {}",
+                command.postId(), command.buyerId(), command.buyerTicketId(), command.offerPrice());
+        tradePostEventPublisher.publishNewRequest(command.postId(), command.offerPrice());
+        return ExchangeRequestInfo.from(saved);
     }
 
     @Override
@@ -97,8 +102,7 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
 
         selectedRequest.select();
         post.startNegotiation();
-
-        // 구매자의 offerPrice를 offer 1로 삼아 협상 자동 시작
+        
         Negotiation negotiation = Negotiation.create(
                 selectedRequest.getId(),
                 sellerId,
@@ -109,17 +113,22 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
                 clock
         );
         negotiationRepository.save(negotiation);
-        log.info("구매자 선택 + 협상 시작 - requestId: {}, sellerId: {}, buyerId: {}", requestId, sellerId, selectedRequest.getBuyerId());
+        log.info("구매자 선택 + 협상 시작 - requestId: {}, sellerId: {}, buyerId: {}",
+                requestId, sellerId, selectedRequest.getBuyerId());
     }
 
     @Override
-    public List<ExchangeRequest> getPostRequests(Long postId) {
-        return exchangeRequestRepository.findByTradePostId(postId);
+    public List<ExchangeRequestInfo> getPostRequests(Long postId) {
+        return exchangeRequestRepository.findByTradePostId(postId).stream()
+                .map(ExchangeRequestInfo::from)
+                .toList();
     }
 
     @Override
-    public List<ExchangeRequest> getMyRequests(Long buyerId) {
-        return exchangeRequestRepository.findByBuyerIdOrderByCreatedAtDesc(buyerId);
+    public List<ExchangeRequestInfo> getMyRequests(Long buyerId) {
+        return exchangeRequestRepository.findByBuyerIdOrderByCreatedAtDesc(buyerId).stream()
+                .map(ExchangeRequestInfo::from)
+                .toList();
     }
 
     private TradePost getPost(Long postId) {

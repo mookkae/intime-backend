@@ -1,11 +1,13 @@
 package com.intime.application.trade;
 
+import com.intime.application.trade.dto.TradePostInfo;
+import com.intime.application.trade.dto.TradePostRegisterCommand;
 import com.intime.common.exception.BusinessException;
 import com.intime.domain.trade.*;
+import com.intime.domain.waiting.WaitingCode;
 import com.intime.domain.waiting.WaitingStatus;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.domain.waiting.WaitingTicketRepository;
-import com.intime.domain.waiting.WaitingCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,11 +28,11 @@ public class TradePostServiceImpl implements TradePostService {
 
     @Override
     @Transactional
-    public TradePost register(Long ticketId, Long sellerId, Long price) {
-        WaitingTicket ticket = waitingTicketRepository.findById(ticketId)
+    public TradePostInfo register(TradePostRegisterCommand command) {
+        WaitingTicket ticket = waitingTicketRepository.findById(command.ticketId())
                 .orElseThrow(() -> new BusinessException(WaitingCode.WAITING_NOT_FOUND));
 
-        if (!ticket.isOwnedBy(sellerId)) {
+        if (!ticket.isOwnedBy(command.sellerId())) {
             throw new BusinessException(TradePostCode.TRADE_POST_NOT_OWNER);
         }
 
@@ -38,14 +40,15 @@ public class TradePostServiceImpl implements TradePostService {
             throw new BusinessException(TradePostCode.TICKET_NOT_TRADEABLE);
         }
 
-        if (tradePostRepository.existsByWaitingTicketIdAndStatus(ticketId, TradePostStatus.OPEN)) {
+        if (tradePostRepository.existsByWaitingTicketIdAndStatus(command.ticketId(), TradePostStatus.OPEN)) {
             throw new BusinessException(TradePostCode.TRADE_POST_DUPLICATE);
         }
 
-        TradePost post = TradePost.create(ticketId, sellerId, ticket.getStoreId(), price);
+        TradePost post = TradePost.create(command.ticketId(), command.sellerId(), ticket.getStoreId(), command.price());
         TradePost saved = tradePostRepository.save(post);
-        log.info("판매 게시글 등록 - ticketId: {}, sellerId: {}, price: {}", ticketId, sellerId, price);
-        return saved;
+        log.info("판매 게시글 등록 - ticketId: {}, sellerId: {}, price: {}",
+                command.ticketId(), command.sellerId(), command.price());
+        return TradePostInfo.from(saved);
     }
 
     @Override
@@ -59,7 +62,7 @@ public class TradePostServiceImpl implements TradePostService {
             throw new BusinessException(TradePostCode.TRADE_POST_INVALID_STATE);
         }
         post.cancel();
-        tradePostRepository.saveAndFlush(post); // @Modifying clearAutomatically 이전에 flush 보장
+        tradePostRepository.saveAndFlush(post);
         exchangeRequestRepository.cancelAllPendingByTradePostId(
                 postId, ExchangeRequestStatus.PENDING, ExchangeRequestStatus.CANCELLED);
         tradePostEventPublisher.publishPostCancelled(postId);
@@ -67,21 +70,17 @@ public class TradePostServiceImpl implements TradePostService {
     }
 
     @Override
-    public List<TradePost> getStoreTradePosts(Long storeId) {
-        return tradePostRepository.findByStoreIdAndStatus(storeId, TradePostStatus.OPEN);
+    public List<TradePostInfo> getStoreTradePosts(Long storeId) {
+        return tradePostRepository.findByStoreIdAndStatus(storeId, TradePostStatus.OPEN).stream()
+                .map(TradePostInfo::from)
+                .toList();
     }
 
     @Override
-    public List<TradePost> getMyTradePosts(Long sellerId) {
-        return tradePostRepository.findBySellerIdOrderByCreatedAtDesc(sellerId);
-    }
-
-    @Override
-    public List<TradePost> getOpenPostsByTicketIds(List<Long> ticketIds) {
-        if (ticketIds.isEmpty()) {
-            return List.of();
-        }
-        return tradePostRepository.findByWaitingTicketIdInAndStatus(ticketIds, TradePostStatus.OPEN);
+    public List<TradePostInfo> getMyTradePosts(Long sellerId) {
+        return tradePostRepository.findBySellerIdOrderByCreatedAtDesc(sellerId).stream()
+                .map(TradePostInfo::from)
+                .toList();
     }
 
     private TradePost getPost(Long postId) {

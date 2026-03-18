@@ -1,11 +1,11 @@
-package com.intime.presentation.trade.dto;
+package com.intime.application.trade.dto;
 
 import com.intime.domain.trade.ExchangeRequest;
 import com.intime.domain.trade.ExchangeRequestStatus;
 
 import java.time.LocalDateTime;
 
-public record ExchangeRequestResponse(
+public record ExchangeRequestInfo(
         Long id,
         Long tradePostId,
         Long buyerTicketId,
@@ -15,8 +15,9 @@ public record ExchangeRequestResponse(
         LocalDateTime expiresAt,
         LocalDateTime createdAt
 ) {
-    public static ExchangeRequestResponse from(ExchangeRequest request) {
-        return new ExchangeRequestResponse(
+
+    public static ExchangeRequestInfo from(ExchangeRequest request) {
+        return new ExchangeRequestInfo(
                 request.getId(),
                 request.getTradePostId(),
                 request.getBuyerTicketId(),

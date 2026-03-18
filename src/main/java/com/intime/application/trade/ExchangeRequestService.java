@@ -1,17 +1,19 @@
 package com.intime.application.trade;
 
-import com.intime.domain.trade.ExchangeRequest;
+import com.intime.application.trade.dto.ExchangeRequestCommand;
+import com.intime.application.trade.dto.ExchangeRequestInfo;
 
 import java.util.List;
 
 public interface ExchangeRequestService {
-    ExchangeRequest requestExchange(Long postId, Long buyerTicketId, Long buyerId, Long offerPrice);
+
+    ExchangeRequestInfo requestExchange(ExchangeRequestCommand command);
 
     void cancelRequest(Long requestId, Long buyerId);
 
     void selectBuyerAndStartNegotiation(Long requestId, Long sellerId);
 
-    List<ExchangeRequest> getPostRequests(Long postId);
+    List<ExchangeRequestInfo> getPostRequests(Long postId);
 
-    List<ExchangeRequest> getMyRequests(Long buyerId);
+    List<ExchangeRequestInfo> getMyRequests(Long buyerId);
 }

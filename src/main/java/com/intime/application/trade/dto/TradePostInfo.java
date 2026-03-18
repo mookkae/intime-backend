@@ -1,11 +1,11 @@
-package com.intime.presentation.trade.dto;
+package com.intime.application.trade.dto;
 
 import com.intime.domain.trade.TradePost;
 import com.intime.domain.trade.TradePostStatus;
 
 import java.time.LocalDateTime;
 
-public record TradePostResponse(
+public record TradePostInfo(
         Long id,
         Long waitingTicketId,
         Long sellerId,
@@ -14,8 +14,9 @@ public record TradePostResponse(
         Long price,
         LocalDateTime createdAt
 ) {
-    public static TradePostResponse from(TradePost post) {
-        return new TradePostResponse(
+
+    public static TradePostInfo from(TradePost post) {
+        return new TradePostInfo(
                 post.getId(),
                 post.getWaitingTicketId(),
                 post.getSellerId(),

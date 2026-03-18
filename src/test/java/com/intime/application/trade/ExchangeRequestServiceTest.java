@@ -1,11 +1,14 @@
 package com.intime.application.trade;
 
+import com.intime.application.trade.dto.ExchangeRequestCommand;
+import com.intime.application.trade.dto.ExchangeRequestInfo;
 import com.intime.application.trade.fixture.ExchangeRequestFixture;
 import com.intime.application.trade.fixture.TradePostFixture;
 import com.intime.common.exception.BusinessException;
+import com.intime.domain.negotiation.Negotiation;
 import com.intime.domain.negotiation.NegotiationRepository;
+import com.intime.domain.negotiation.NegotiationStatus;
 import com.intime.domain.trade.*;
-import com.intime.domain.waiting.WaitingCode;
 import com.intime.domain.waiting.WaitingTicket;
 import com.intime.domain.waiting.WaitingTicketRepository;
 import com.intime.support.fixture.WaitingTicketFixture;
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,10 +32,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-
-import com.intime.domain.negotiation.Negotiation;
-import com.intime.domain.negotiation.NegotiationStatus;
-import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ExchangeRequestService 단위 테스트")
@@ -78,8 +78,9 @@ class ExchangeRequestServiceTest {
         void requestExchangeSuccess() {
             // given
             setupClock();
-            TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L); // sellerId=1
-            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(2L, 1L, 2L, 2, 2); // memberId=2
+            ExchangeRequestCommand command = new ExchangeRequestCommand(1L, 2L, 2L, 10000L);
+            TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
+            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(2L, 1L, 2L, 2, 2);
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
             given(exchangeRequestRepository.existsByTradePostIdAndBuyerIdAndStatusIn(
                     1L, 2L, List.of(ExchangeRequestStatus.PENDING, ExchangeRequestStatus.SELECTED)))
@@ -88,26 +89,27 @@ class ExchangeRequestServiceTest {
             given(exchangeRequestRepository.save(any(ExchangeRequest.class))).willAnswer(inv -> inv.getArgument(0));
 
             // when
-            ExchangeRequest result = exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L);
+            ExchangeRequestInfo result = exchangeRequestService.requestExchange(command);
 
             // then
-            assertThat(result.getStatus()).isEqualTo(ExchangeRequestStatus.PENDING);
-            assertThat(result.getOfferPrice()).isEqualTo(10000L);
-            assertThat(result.getExpiresAt()).isEqualTo(FIXED_NOW.plusMinutes(5));
+            assertThat(result.status()).isEqualTo(ExchangeRequestStatus.PENDING);
+            assertThat(result.offerPrice()).isEqualTo(10000L);
+            assertThat(result.expiresAt()).isEqualTo(FIXED_NOW.plusMinutes(5));
         }
 
         @Test
         @DisplayName("실패 : 동일 포스트에 PENDING/SELECTED 신청이 있으면 예외")
         void requestExchangeDuplicate() {
             // given
-            TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L); // sellerId=1
+            ExchangeRequestCommand command = new ExchangeRequestCommand(1L, 2L, 2L, 10000L);
+            TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
             given(exchangeRequestRepository.existsByTradePostIdAndBuyerIdAndStatusIn(
                     1L, 2L, List.of(ExchangeRequestStatus.PENDING, ExchangeRequestStatus.SELECTED)))
                     .willReturn(true);
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L))
+            assertThatThrownBy(() -> exchangeRequestService.requestExchange(command))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(ExchangeRequestCode.EXCHANGE_REQUEST_DUPLICATE);
@@ -117,6 +119,7 @@ class ExchangeRequestServiceTest {
         @DisplayName("실패 : buyerTicket WAITING 아닌 경우 예외")
         void buyerTicketNotWaiting() {
             // given
+            ExchangeRequestCommand command = new ExchangeRequestCommand(1L, 2L, 2L, 10000L);
             TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
             WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(2L, 1L, 2L, 2, 2);
             buyerTicket.call(LocalDateTime.now());
@@ -127,7 +130,7 @@ class ExchangeRequestServiceTest {
             given(waitingTicketRepository.findById(2L)).willReturn(Optional.of(buyerTicket));
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L))
+            assertThatThrownBy(() -> exchangeRequestService.requestExchange(command))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(ExchangeRequestCode.BUYER_TICKET_NOT_WAITING);
@@ -137,11 +140,12 @@ class ExchangeRequestServiceTest {
         @DisplayName("실패 : 본인 포스트에 신청 시 예외")
         void requestSelfPost() {
             // given
-            TradePost post = TradePostFixture.createPost(1L, 10L, 2L, 1L); // sellerId=2 (same as buyerId)
+            ExchangeRequestCommand command = new ExchangeRequestCommand(1L, 2L, 2L, 10000L);
+            TradePost post = TradePostFixture.createPost(1L, 10L, 2L, 1L);
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L))
+            assertThatThrownBy(() -> exchangeRequestService.requestExchange(command))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(ExchangeRequestCode.EXCHANGE_REQUEST_SELF_POST);
@@ -151,8 +155,9 @@ class ExchangeRequestServiceTest {
         @DisplayName("실패 : buyerTicket 소유자 아닌 경우 예외")
         void buyerTicketNotOwner() {
             // given
+            ExchangeRequestCommand command = new ExchangeRequestCommand(1L, 2L, 2L, 10000L);
             TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
-            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(2L, 1L, 3L, 2, 2); // owned by memberId=3
+            WaitingTicket buyerTicket = WaitingTicketFixture.createTicket(2L, 1L, 3L, 2, 2);
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
             given(exchangeRequestRepository.existsByTradePostIdAndBuyerIdAndStatusIn(
                     1L, 2L, List.of(ExchangeRequestStatus.PENDING, ExchangeRequestStatus.SELECTED)))
@@ -160,7 +165,7 @@ class ExchangeRequestServiceTest {
             given(waitingTicketRepository.findById(2L)).willReturn(Optional.of(buyerTicket));
 
             // when & then
-            assertThatThrownBy(() -> exchangeRequestService.requestExchange(1L, 2L, 2L, 10000L))
+            assertThatThrownBy(() -> exchangeRequestService.requestExchange(command))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(ExchangeRequestCode.BUYER_TICKET_NOT_OWNER);
@@ -210,7 +215,7 @@ class ExchangeRequestServiceTest {
             // given
             setupClock();
             ExchangeRequest request = ExchangeRequestFixture.createRequest(1L, 1L, 2L, 2L);
-            TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L); // sellerId=1
+            TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
             given(exchangeRequestRepository.findById(1L)).willReturn(Optional.of(request));
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
             given(negotiationRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
@@ -236,7 +241,7 @@ class ExchangeRequestServiceTest {
         void selectByNonOwner() {
             // given
             ExchangeRequest request = ExchangeRequestFixture.createRequest(1L, 1L, 2L, 2L);
-            TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L); // sellerId=1
+            TradePost post = TradePostFixture.createPost(1L, 10L, 1L, 1L);
             given(exchangeRequestRepository.findById(1L)).willReturn(Optional.of(request));
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
 

@@ -1,5 +1,7 @@
 package com.intime.application.trade;
 
+import com.intime.application.trade.dto.TradePostInfo;
+import com.intime.application.trade.dto.TradePostRegisterCommand;
 import com.intime.application.trade.fixture.TradePostFixture;
 import com.intime.common.exception.BusinessException;
 import com.intime.domain.trade.*;
@@ -52,17 +54,18 @@ class TradePostServiceTest {
         void registerSuccess() {
             // given
             WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
+            TradePostRegisterCommand command = new TradePostRegisterCommand(1L, 1L, null);
             given(waitingTicketRepository.findById(1L)).willReturn(Optional.of(ticket));
             given(tradePostRepository.existsByWaitingTicketIdAndStatus(1L, TradePostStatus.OPEN)).willReturn(false);
             given(tradePostRepository.save(any(TradePost.class))).willAnswer(inv -> inv.getArgument(0));
 
             // when
-            TradePost result = tradePostService.register(1L, 1L, null);
+            TradePostInfo result = tradePostService.register(command);
 
             // then
-            assertThat(result.getStatus()).isEqualTo(TradePostStatus.OPEN);
-            assertThat(result.getSellerId()).isEqualTo(1L);
-            assertThat(result.getStoreId()).isEqualTo(ticket.getStoreId());
+            assertThat(result.status()).isEqualTo(TradePostStatus.OPEN);
+            assertThat(result.sellerId()).isEqualTo(1L);
+            assertThat(result.storeId()).isEqualTo(ticket.getStoreId());
         }
 
         @Test
@@ -71,10 +74,11 @@ class TradePostServiceTest {
             // given
             WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
             ticket.call(LocalDateTime.now());
+            TradePostRegisterCommand command = new TradePostRegisterCommand(1L, 1L, null);
             given(waitingTicketRepository.findById(1L)).willReturn(Optional.of(ticket));
 
             // when & then
-            assertThatThrownBy(() -> tradePostService.register(1L, 1L, null))
+            assertThatThrownBy(() -> tradePostService.register(command))
                     .isInstanceOf(BusinessException.class);
         }
 
@@ -83,10 +87,11 @@ class TradePostServiceTest {
         void registerNotOwner() {
             // given
             WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
+            TradePostRegisterCommand command = new TradePostRegisterCommand(1L, 999L, null);
             given(waitingTicketRepository.findById(1L)).willReturn(Optional.of(ticket));
 
             // when & then
-            assertThatThrownBy(() -> tradePostService.register(1L, 999L, null))
+            assertThatThrownBy(() -> tradePostService.register(command))
                     .isInstanceOf(BusinessException.class);
         }
 
@@ -95,11 +100,12 @@ class TradePostServiceTest {
         void registerDuplicate() {
             // given
             WaitingTicket ticket = WaitingTicketFixture.createTicket(1L, 1L, 1L, 1, 2);
+            TradePostRegisterCommand command = new TradePostRegisterCommand(1L, 1L, null);
             given(waitingTicketRepository.findById(1L)).willReturn(Optional.of(ticket));
             given(tradePostRepository.existsByWaitingTicketIdAndStatus(1L, TradePostStatus.OPEN)).willReturn(true);
 
             // when & then
-            assertThatThrownBy(() -> tradePostService.register(1L, 1L, null))
+            assertThatThrownBy(() -> tradePostService.register(command))
                     .isInstanceOf(BusinessException.class);
         }
     }
