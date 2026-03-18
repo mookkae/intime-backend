@@ -1,7 +1,7 @@
 package com.intime.presentation.trade.api;
 
+import com.intime.application.trade.dto.TradePostInfo;
 import com.intime.presentation.trade.dto.TradePostCreateRequest;
-import com.intime.presentation.trade.dto.TradePostResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,7 +17,7 @@ public interface TradePostApi {
     @Operation(summary = "순번 교환 게시글 등록")
     @ApiResponse(responseCode = "201", description = "게시글 등록 성공")
     @PostMapping("/api/v1/waiting/{ticketId}/trade-post")
-    ResponseEntity<TradePostResponse> register(
+    ResponseEntity<TradePostInfo> register(
             @PathVariable Long ticketId,
             @Parameter(description = "회원 ID") @RequestHeader("X-Member-Id") Long memberId,
             @RequestBody TradePostCreateRequest request
@@ -34,12 +34,12 @@ public interface TradePostApi {
     @Operation(summary = "가게 교환 게시글 목록 조회")
     @ApiResponse(responseCode = "200", description = "게시글 목록 조회 성공")
     @GetMapping("/api/v1/stores/{storeId}/trade-posts")
-    ResponseEntity<List<TradePostResponse>> getStoreTradePosts(@PathVariable Long storeId);
+    ResponseEntity<List<TradePostInfo>> getStoreTradePosts(@PathVariable Long storeId);
 
     @Operation(summary = "내 판매 게시글 목록 조회")
     @ApiResponse(responseCode = "200", description = "내 게시글 목록 조회 성공")
     @GetMapping("/api/v1/trade-posts/my")
-    ResponseEntity<List<TradePostResponse>> getMyTradePosts(
+    ResponseEntity<List<TradePostInfo>> getMyTradePosts(
             @Parameter(description = "회원 ID") @RequestHeader("X-Member-Id") Long memberId
     );
 }

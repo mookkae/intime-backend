@@ -1,11 +1,11 @@
-package com.intime.presentation.negotiation.dto;
+package com.intime.application.negotiation.dto;
 
 import com.intime.domain.negotiation.Negotiation;
 import com.intime.domain.negotiation.NegotiationStatus;
 
 import java.time.LocalDateTime;
 
-public record NegotiationResponse(
+public record NegotiationInfo(
         Long id,
         NegotiationStatus status,
         Long currentPrice,
@@ -15,8 +15,9 @@ public record NegotiationResponse(
         Long sellerId,
         Long buyerId
 ) {
-    public static NegotiationResponse from(Negotiation negotiation) {
-        return new NegotiationResponse(
+
+    public static NegotiationInfo from(Negotiation negotiation) {
+        return new NegotiationInfo(
                 negotiation.getId(),
                 negotiation.getStatus(),
                 negotiation.getCurrentPrice(),

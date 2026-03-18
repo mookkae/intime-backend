@@ -1,5 +1,8 @@
 package com.intime.application.negotiation;
 
+import com.intime.application.negotiation.dto.NegotiationFinalOfferCommand;
+import com.intime.application.negotiation.dto.NegotiationInfo;
+import com.intime.application.negotiation.dto.NegotiationOfferCommand;
 import com.intime.application.trade.TradeLifecycleService;
 import com.intime.application.waiting.WaitingEventPublisher;
 import com.intime.common.exception.BusinessException;
@@ -42,33 +45,36 @@ public class NegotiationServiceImpl implements NegotiationService {
     private final Clock clock;
 
     @Override
-    public Negotiation getNegotiation(Long negotiationId) {
-        return getNegotiationOrThrow(negotiationId);
+    public NegotiationInfo getNegotiation(Long negotiationId) {
+        return NegotiationInfo.from(getNegotiationOrThrow(negotiationId));
     }
 
     @Override
-    public Negotiation getNegotiationByExchangeRequestId(Long exchangeRequestId) {
-        return negotiationRepository.findByExchangeRequestId(exchangeRequestId)
+    public NegotiationInfo getNegotiationByExchangeRequestId(Long exchangeRequestId) {
+        Negotiation negotiation = negotiationRepository.findByExchangeRequestId(exchangeRequestId)
                 .orElseThrow(() -> new BusinessException(NegotiationCode.NEGOTIATION_NOT_FOUND));
+        return NegotiationInfo.from(negotiation);
     }
 
     @Override
     @Transactional
-    public Negotiation makeOffer(Long negotiationId, Long memberId, Long price) {
-        Negotiation negotiation = getNegotiationOrThrow(negotiationId);
-        negotiation.makeOffer(memberId, price);
+    public NegotiationInfo makeOffer(NegotiationOfferCommand command) {
+        Negotiation negotiation = getNegotiationOrThrow(command.negotiationId());
+        negotiation.makeOffer(command.memberId(), command.price());
         log.info("가격 제안 - negotiationId: {}, memberId: {}, price: {}, offerCount: {}, status: {}",
-                negotiationId, memberId, price, negotiation.getOfferCount(), negotiation.getStatus());
+                command.negotiationId(), command.memberId(), command.price(),
+                negotiation.getOfferCount(), negotiation.getStatus());
 
         if (negotiation.getStatus() == NegotiationStatus.FINAL_ROUND) {
-            eventPublisher.publish(negotiationId,
+            eventPublisher.publish(command.negotiationId(),
                     NegotiationEventDto.ofFinalRound(negotiation.getExpiresAt(), negotiation.getLastOfferedBy()));
         } else {
-            eventPublisher.publish(negotiationId,
-                    NegotiationEventDto.ofOffer(price, negotiation.getOfferCount(), negotiation.getExpiresAt(), negotiation.getLastOfferedBy()));
+            eventPublisher.publish(command.negotiationId(),
+                    NegotiationEventDto.ofOffer(command.price(), negotiation.getOfferCount(),
+                            negotiation.getExpiresAt(), negotiation.getLastOfferedBy()));
         }
 
-        return negotiation;
+        return NegotiationInfo.from(negotiation);
     }
 
     @Override
@@ -113,8 +119,8 @@ public class NegotiationServiceImpl implements NegotiationService {
 
     @Override
     @Transactional
-    public void submitFinalOffer(Long negotiationId, Long memberId, Long price) {
-        Negotiation negotiation = getNegotiationOrThrow(negotiationId);
+    public void submitFinalOffer(NegotiationFinalOfferCommand command) {
+        Negotiation negotiation = getNegotiationOrThrow(command.negotiationId());
 
         WaitingTicket sellerTicket = getTicket(negotiation.getSellerTicketId());
         if (!sellerTicket.isTradeable()) {
@@ -126,18 +132,17 @@ public class NegotiationServiceImpl implements NegotiationService {
             throw new BusinessException(NegotiationCode.BUYER_TICKET_NOT_TRADEABLE);
         }
 
-        boolean dealReached = negotiation.submitFinalOffer(memberId, price);
-        log.info("최종가 제출 - negotiationId: {}, memberId: {}, price: {}, dealReached: {}", negotiationId, memberId, price, dealReached);
+        boolean dealReached = negotiation.submitFinalOffer(command.memberId(), command.price());
+        log.info("최종가 제출 - negotiationId: {}, memberId: {}, price: {}, dealReached: {}",
+                command.negotiationId(), command.memberId(), command.price(), dealReached);
 
         if (dealReached) {
             executeDeal(negotiation, sellerTicket);
         } else if (negotiation.getStatus() == NegotiationStatus.FAILED) {
-            // 양쪽 모두 제출했지만 가격 불일치 → 협상 불성사
-            log.info("최종 입찰 가격 불일치 → 협상 불성사 - negotiationId: {}", negotiationId);
-            eventPublisher.publish(negotiationId, NegotiationEventDto.ofFailed());
+            log.info("최종 입찰 가격 불일치 → 협상 불성사 - negotiationId: {}", command.negotiationId());
+            eventPublisher.publish(command.negotiationId(), NegotiationEventDto.ofFailed());
         } else {
-            // 한쪽만 제출한 상태 → 상대방에게 제출 요청 알림
-            eventPublisher.publish(negotiationId, NegotiationEventDto.ofFinalOfferSubmitted());
+            eventPublisher.publish(command.negotiationId(), NegotiationEventDto.ofFinalOfferSubmitted());
         }
     }
 

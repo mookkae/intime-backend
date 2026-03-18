@@ -1,18 +1,18 @@
-package com.intime.presentation.member.dto;
+package com.intime.application.member.dto;
 
 import com.intime.domain.member.Member;
 
 import java.time.LocalDateTime;
 
-public record MemberResponse(
+public record MemberInfo(
         Long id,
         String email,
         String nickname,
         LocalDateTime createdAt
 ) {
 
-    public static MemberResponse from(Member member) {
-        return new MemberResponse(
+    public static MemberInfo from(Member member) {
+        return new MemberInfo(
                 member.getId(),
                 member.getEmail(),
                 member.getNickname(),

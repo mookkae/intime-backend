@@ -1,12 +1,13 @@
 package com.intime.application.member;
 
-import com.intime.domain.member.Member;
+import com.intime.application.member.dto.MemberInfo;
+import com.intime.application.member.dto.MemberSignupCommand;
 
 public interface MemberService {
 
-    Member signup(String email, String password);
+    MemberInfo signup(MemberSignupCommand command);
 
-    Member getMember(Long memberId);
+    MemberInfo getMember(Long memberId);
 
-    Member updateNickname(Long memberId, String nickname);
+    MemberInfo updateNickname(Long memberId, String nickname);
 }

@@ -1,11 +1,11 @@
-package com.intime.presentation.waiting.dto;
+package com.intime.application.waiting.dto;
 
 import com.intime.domain.waiting.WaitingStatus;
 import com.intime.domain.waiting.WaitingTicket;
 
 import java.time.LocalDate;
 
-public record WaitingTicketResponse(
+public record WaitingTicketInfo(
         Long id,
         Long storeId,
         Long memberId,
@@ -13,17 +13,18 @@ public record WaitingTicketResponse(
         WaitingStatus status,
         int partySize,
         LocalDate waitingDate,
-        TradePostInfo tradePost
+        TradePostSummary tradePost
 ) {
 
-    public record TradePostInfo(Long tradePostId, Long price) {}
+    public record TradePostSummary(Long tradePostId, Long price) {
+    }
 
-    public static WaitingTicketResponse from(WaitingTicket ticket) {
+    public static WaitingTicketInfo from(WaitingTicket ticket) {
         return from(ticket, null);
     }
 
-    public static WaitingTicketResponse from(WaitingTicket ticket, TradePostInfo tradePost) {
-        return new WaitingTicketResponse(
+    public static WaitingTicketInfo from(WaitingTicket ticket, TradePostSummary tradePost) {
+        return new WaitingTicketInfo(
                 ticket.getId(),
                 ticket.getStoreId(),
                 ticket.getMemberId(),

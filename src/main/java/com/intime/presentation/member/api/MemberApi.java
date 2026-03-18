@@ -1,6 +1,6 @@
 package com.intime.presentation.member.api;
 
-import com.intime.presentation.member.dto.MemberResponse;
+import com.intime.application.member.dto.MemberInfo;
 import com.intime.presentation.member.dto.NicknameUpdateRequest;
 import com.intime.presentation.member.dto.SignupRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,17 +16,17 @@ public interface MemberApi {
     @Operation(summary = "회원가입")
     @ApiResponse(responseCode = "201", description = "회원가입 성공")
     @PostMapping("/signup")
-    ResponseEntity<MemberResponse> signup(@RequestBody SignupRequest request);
+    ResponseEntity<MemberInfo> signup(@RequestBody SignupRequest request);
 
     @Operation(summary = "회원 조회")
     @ApiResponse(responseCode = "200", description = "회원 조회 성공")
     @GetMapping("/{memberId}")
-    ResponseEntity<MemberResponse> getMember(@PathVariable Long memberId);
+    ResponseEntity<MemberInfo> getMember(@PathVariable Long memberId);
 
     @Operation(summary = "닉네임 수정")
     @ApiResponse(responseCode = "200", description = "닉네임 수정 성공")
     @PatchMapping("/{memberId}")
-    ResponseEntity<MemberResponse> updateNickname(
+    ResponseEntity<MemberInfo> updateNickname(
             @PathVariable Long memberId,
             @RequestBody NicknameUpdateRequest request
     );

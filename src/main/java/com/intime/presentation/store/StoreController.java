@@ -1,10 +1,10 @@
 package com.intime.presentation.store;
 
 import com.intime.application.store.StoreService;
-import com.intime.domain.store.Store;
-import com.intime.presentation.store.dto.StoreCreateRequest;
-import com.intime.presentation.store.dto.StoreResponse;
+import com.intime.application.store.dto.StoreCreateCommand;
+import com.intime.application.store.dto.StoreInfo;
 import com.intime.presentation.store.api.StoreApi;
+import com.intime.presentation.store.dto.StoreCreateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,20 +20,19 @@ public class StoreController implements StoreApi {
     private final StoreService storeService;
 
     @PostMapping
-    public ResponseEntity<StoreResponse> createStore(@RequestBody StoreCreateRequest request) {
-        Store store = storeService.createStore(request.name(), request.address(), request.estimatedWaitMinutes());
-        return ResponseEntity.status(HttpStatus.CREATED).body(StoreResponse.from(store));
+    public ResponseEntity<StoreInfo> createStore(@RequestBody StoreCreateRequest request) {
+        StoreCreateCommand command = new StoreCreateCommand(
+                request.name(), request.address(), request.estimatedWaitMinutes());
+        return ResponseEntity.status(HttpStatus.CREATED).body(storeService.createStore(command));
     }
 
     @GetMapping
-    public ResponseEntity<List<StoreResponse>> getStores() {
-        return ResponseEntity.ok(storeService.getStores().stream()
-                .map(StoreResponse::from)
-                .toList());
+    public ResponseEntity<List<StoreInfo>> getStores() {
+        return ResponseEntity.ok(storeService.getStores());
     }
 
     @GetMapping("/{storeId}")
-    public ResponseEntity<StoreResponse> getStore(@PathVariable Long storeId) {
-        return ResponseEntity.ok(StoreResponse.from(storeService.getStore(storeId)));
+    public ResponseEntity<StoreInfo> getStore(@PathVariable Long storeId) {
+        return ResponseEntity.ok(storeService.getStore(storeId));
     }
 }

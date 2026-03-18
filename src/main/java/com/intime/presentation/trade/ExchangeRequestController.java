@@ -1,10 +1,10 @@
 package com.intime.presentation.trade;
 
 import com.intime.application.trade.ExchangeRequestService;
-import com.intime.domain.trade.ExchangeRequest;
-import com.intime.presentation.trade.dto.ExchangeRequestCreateRequest;
-import com.intime.presentation.trade.dto.ExchangeRequestResponse;
+import com.intime.application.trade.dto.ExchangeRequestCommand;
+import com.intime.application.trade.dto.ExchangeRequestInfo;
 import com.intime.presentation.trade.api.ExchangeRequestApi;
+import com.intime.presentation.trade.dto.ExchangeRequestCreateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,13 +19,14 @@ public class ExchangeRequestController implements ExchangeRequestApi {
     private final ExchangeRequestService exchangeRequestService;
 
     @PostMapping("/api/v1/trade-posts/{postId}/requests")
-    public ResponseEntity<ExchangeRequestResponse> requestExchange(
+    public ResponseEntity<ExchangeRequestInfo> requestExchange(
             @PathVariable Long postId,
             @RequestHeader("X-Member-Id") Long memberId,
             @RequestBody ExchangeRequestCreateRequest request
     ) {
-        ExchangeRequest exchangeRequest = exchangeRequestService.requestExchange(postId, request.buyerTicketId(), memberId, request.offerPrice());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ExchangeRequestResponse.from(exchangeRequest));
+        ExchangeRequestCommand command = new ExchangeRequestCommand(
+                postId, request.buyerTicketId(), memberId, request.offerPrice());
+        return ResponseEntity.status(HttpStatus.CREATED).body(exchangeRequestService.requestExchange(command));
     }
 
     @DeleteMapping("/api/v1/exchange-requests/{requestId}")
@@ -38,10 +39,8 @@ public class ExchangeRequestController implements ExchangeRequestApi {
     }
 
     @GetMapping("/api/v1/trade-posts/{postId}/requests")
-    public ResponseEntity<List<ExchangeRequestResponse>> getRequests(@PathVariable Long postId) {
-        return ResponseEntity.ok(exchangeRequestService.getPostRequests(postId).stream()
-                .map(ExchangeRequestResponse::from)
-                .toList());
+    public ResponseEntity<List<ExchangeRequestInfo>> getRequests(@PathVariable Long postId) {
+        return ResponseEntity.ok(exchangeRequestService.getPostRequests(postId));
     }
 
     @PostMapping("/api/v1/exchange-requests/{requestId}/select")
@@ -54,11 +53,9 @@ public class ExchangeRequestController implements ExchangeRequestApi {
     }
 
     @GetMapping("/api/v1/exchange-requests/my")
-    public ResponseEntity<List<ExchangeRequestResponse>> getMyRequests(
+    public ResponseEntity<List<ExchangeRequestInfo>> getMyRequests(
             @RequestHeader("X-Member-Id") Long memberId
     ) {
-        return ResponseEntity.ok(exchangeRequestService.getMyRequests(memberId).stream()
-                .map(ExchangeRequestResponse::from)
-                .toList());
+        return ResponseEntity.ok(exchangeRequestService.getMyRequests(memberId));
     }
 }

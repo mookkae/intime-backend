@@ -1,18 +1,20 @@
 package com.intime.application.negotiation;
 
-import com.intime.domain.negotiation.Negotiation;
+import com.intime.application.negotiation.dto.NegotiationFinalOfferCommand;
+import com.intime.application.negotiation.dto.NegotiationInfo;
+import com.intime.application.negotiation.dto.NegotiationOfferCommand;
 
 public interface NegotiationService {
 
-    Negotiation getNegotiation(Long negotiationId);
+    NegotiationInfo getNegotiation(Long negotiationId);
 
-    Negotiation getNegotiationByExchangeRequestId(Long exchangeRequestId);
+    NegotiationInfo getNegotiationByExchangeRequestId(Long exchangeRequestId);
 
-    Negotiation makeOffer(Long negotiationId, Long memberId, Long price);
+    NegotiationInfo makeOffer(NegotiationOfferCommand command);
 
     void accept(Long negotiationId, Long memberId);
 
     void reject(Long negotiationId, Long memberId);
 
-    void submitFinalOffer(Long negotiationId, Long memberId, Long price);
+    void submitFinalOffer(NegotiationFinalOfferCommand command);
 }

@@ -1,6 +1,8 @@
 package com.intime.application.waiting;
 
 import com.intime.application.trade.TradePostEventPublisher;
+import com.intime.application.waiting.dto.WaitingRegisterCommand;
+import com.intime.application.waiting.dto.WaitingTicketInfo;
 import com.intime.common.exception.BusinessException;
 import com.intime.domain.negotiation.NegotiationRepository;
 import com.intime.domain.negotiation.NegotiationStatus;
@@ -41,28 +43,31 @@ public class WaitingServiceImpl implements WaitingService {
     @Transactional
     @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
             maxAttempts = 3, backoff = @Backoff(delay = 100))
-    public WaitingTicket register(Long storeId, Long memberId, int partySize) {
+    public WaitingTicketInfo register(WaitingRegisterCommand command) {
         LocalDate today = LocalDate.now(clock);
 
         boolean isDuplicate = waitingTicketRepository.existsByMemberIdAndStoreIdAndWaitingDateAndStatusIn(
-                memberId, storeId, today, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED));
+                command.memberId(), command.storeId(), today, List.of(WaitingStatus.WAITING, WaitingStatus.CALLED));
         if (isDuplicate) {
             throw new BusinessException(WaitingCode.WAITING_DUPLICATE);
         }
 
         int nextPosition = waitingTicketRepository
-                .findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(storeId, today)
+                .findTopByStoreIdAndWaitingDateOrderByPositionNumberDesc(command.storeId(), today)
                 .map(ticket -> ticket.getPositionNumber() + 1)
                 .orElse(1);
 
-        WaitingTicket ticket = WaitingTicket.create(storeId, memberId, nextPosition, partySize, today);
+        WaitingTicket ticket = WaitingTicket.create(
+                command.storeId(), command.memberId(), nextPosition, command.partySize(), today);
 
         try {
             WaitingTicket saved = waitingTicketRepository.save(ticket);
-            log.info("웨이팅 등록 완료 - storeId: {}, memberId: {}, positionNumber: {}", storeId, memberId, nextPosition);
-            return saved;
+            log.info("웨이팅 등록 완료 - storeId: {}, memberId: {}, positionNumber: {}",
+                    command.storeId(), command.memberId(), nextPosition);
+            return WaitingTicketInfo.from(saved);
         } catch (DataIntegrityViolationException e) {
-            log.warn("웨이팅 등록 실패 (순번 충돌) - storeId: {}, memberId: {}", storeId, memberId);
+            log.warn("웨이팅 등록 실패 (순번 충돌) - storeId: {}, memberId: {}",
+                    command.storeId(), command.memberId());
             throw new BusinessException(WaitingCode.WAITING_REGISTER_FAILED);
         }
     }
@@ -80,21 +85,20 @@ public class WaitingServiceImpl implements WaitingService {
 
         ticket.cancel();
 
-        waitingTicketRepository.saveAndFlush(ticket); // @Modifying clearAutomatically 이전에 flush 보장
+        waitingTicketRepository.saveAndFlush(ticket);
         log.info("웨이팅 취소 - ticketId: {}, memberId: {}", ticketId, memberId);
 
         // 판매자로서 게시한 교환 게시글 취소 → 구매자 신청 일괄 취소 + 알림
         tradePostRepository.findByWaitingTicketIdAndStatus(ticket.getId(), TradePostStatus.OPEN)
                 .ifPresent(post -> {
                     post.cancel();
-                    tradePostRepository.saveAndFlush(post); // @Modifying clearAutomatically 이전에 flush 보장
+                    tradePostRepository.saveAndFlush(post);
                     exchangeRequestRepository.cancelAllPendingByTradePostId(
                             post.getId(), ExchangeRequestStatus.PENDING, ExchangeRequestStatus.CANCELLED);
                     tradePostEventPublisher.publishPostCancelled(post.getId());
                     log.info("웨이팅 취소로 인한 판매 게시글 취소 - postId: {}", post.getId());
                 });
 
-        // 구매자로서 신청한 교환 신청 취소
         int cancelledCount = exchangeRequestRepository.cancelAllPendingByBuyerTicketId(
                 ticketId, ExchangeRequestStatus.PENDING, ExchangeRequestStatus.CANCELLED);
         if (cancelledCount > 0) {
@@ -106,7 +110,7 @@ public class WaitingServiceImpl implements WaitingService {
     @Transactional
     @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
             maxAttempts = 3, backoff = @Backoff(delay = 100))
-    public WaitingTicket callNext(Long storeId) {
+    public WaitingTicketInfo callNext(Long storeId) {
         WaitingTicket ticket = waitingTicketRepository
                 .findTopByStoreIdAndStatusOrderByPositionNumberAsc(storeId, WaitingStatus.WAITING)
                 .orElseThrow(() -> new BusinessException(WaitingCode.WAITING_NO_ONE_WAITING));
@@ -127,10 +131,11 @@ public class WaitingServiceImpl implements WaitingService {
         } else {
             ticket.call(now);
             waitingEventPublisher.publishCalled(ticket.getId());
-            log.info("순번 호출 - storeId: {}, ticketId: {}, positionNumber: {}", storeId, ticket.getId(), ticket.getPositionNumber());
+            log.info("순번 호출 - storeId: {}, ticketId: {}, positionNumber: {}",
+                    storeId, ticket.getId(), ticket.getPositionNumber());
         }
 
-        return ticket;
+        return WaitingTicketInfo.from(ticket);
     }
 
     @Override

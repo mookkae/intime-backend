@@ -1,5 +1,7 @@
 package com.intime.application.store;
 
+import com.intime.application.store.dto.StoreCreateCommand;
+import com.intime.application.store.dto.StoreInfo;
 import com.intime.common.exception.BusinessException;
 import com.intime.domain.store.Store;
 import com.intime.domain.store.StoreCode;
@@ -19,18 +21,23 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     @Transactional
-    public Store createStore(String name, String address, int estimatedWaitMinutes) {
-        return storeRepository.save(Store.create(name, address, estimatedWaitMinutes));
+    public StoreInfo createStore(StoreCreateCommand command) {
+        Store store = storeRepository.save(
+                Store.create(command.name(), command.address(), command.estimatedWaitMinutes()));
+        return StoreInfo.from(store);
     }
 
     @Override
-    public Store getStore(Long storeId) {
-        return storeRepository.findById(storeId)
+    public StoreInfo getStore(Long storeId) {
+        Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new BusinessException(StoreCode.STORE_NOT_FOUND));
+        return StoreInfo.from(store);
     }
 
     @Override
-    public List<Store> getStores() {
-        return storeRepository.findAll();
+    public List<StoreInfo> getStores() {
+        return storeRepository.findAll().stream()
+                .map(StoreInfo::from)
+                .toList();
     }
 }

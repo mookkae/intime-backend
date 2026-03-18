@@ -1,17 +1,17 @@
 package com.intime.application.trade;
 
-import com.intime.domain.trade.TradePost;
+import com.intime.application.trade.dto.TradePostInfo;
+import com.intime.application.trade.dto.TradePostRegisterCommand;
 
 import java.util.List;
 
 public interface TradePostService {
-    TradePost register(Long ticketId, Long sellerId, Long price);
+
+    TradePostInfo register(TradePostRegisterCommand command);
 
     void withdraw(Long postId, Long sellerId);
 
-    List<TradePost> getStoreTradePosts(Long storeId);
+    List<TradePostInfo> getStoreTradePosts(Long storeId);
 
-    List<TradePost> getMyTradePosts(Long sellerId);
-
-    List<TradePost> getOpenPostsByTicketIds(List<Long> ticketIds);
+    List<TradePostInfo> getMyTradePosts(Long sellerId);
 }

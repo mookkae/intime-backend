@@ -1,5 +1,7 @@
 package com.intime.application.negotiation;
 
+import com.intime.application.negotiation.dto.NegotiationFinalOfferCommand;
+import com.intime.application.negotiation.dto.NegotiationOfferCommand;
 import com.intime.application.negotiation.fixture.NegotiationFixture;
 import com.intime.application.trade.TradeLifecycleService;
 import com.intime.application.trade.fixture.ExchangeRequestFixture;
@@ -79,7 +81,7 @@ class NegotiationServiceTest {
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
 
             // when - seller(1L)이 카운터 오퍼 (lastOfferedBy=buyer(2L))
-            negotiationService.makeOffer(1L, 1L, 8000L);
+            negotiationService.makeOffer(new NegotiationOfferCommand(1L, 1L, 8000L));
 
             // then
             assertThat(negotiation.getCurrentPrice()).isEqualTo(8000L);
@@ -95,7 +97,7 @@ class NegotiationServiceTest {
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
 
             // when & then
-            assertThatThrownBy(() -> negotiationService.makeOffer(1L, 2L, 9000L))
+            assertThatThrownBy(() -> negotiationService.makeOffer(new NegotiationOfferCommand(1L, 2L, 9000L)))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(NegotiationCode.NOT_YOUR_TURN);
@@ -109,7 +111,7 @@ class NegotiationServiceTest {
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
 
             // when & then - FINAL_ROUND 상태에서 makeOffer 불가
-            assertThatThrownBy(() -> negotiationService.makeOffer(1L, 2L, 6500L))
+            assertThatThrownBy(() -> negotiationService.makeOffer(new NegotiationOfferCommand(1L, 2L, 6500L)))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(NegotiationCode.NEGOTIATION_INVALID_STATE);
@@ -124,7 +126,7 @@ class NegotiationServiceTest {
             given(negotiationRepository.findById(1L)).willReturn(Optional.of(negotiation));
 
             // when & then
-            assertThatThrownBy(() -> negotiationService.makeOffer(1L, 2L, 8000L))
+            assertThatThrownBy(() -> negotiationService.makeOffer(new NegotiationOfferCommand(1L, 2L, 8000L)))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(NegotiationCode.NEGOTIATION_INVALID_STATE);
@@ -230,10 +232,10 @@ class NegotiationServiceTest {
             given(exchangeRequestRepository.findById(1L)).willReturn(Optional.of(request));
             given(tradePostRepository.findById(1L)).willReturn(Optional.of(post));
 
-            negotiationService.submitFinalOffer(1L, 2L, 7000L); // 구매자 먼저 제출
+            negotiationService.submitFinalOffer(new NegotiationFinalOfferCommand(1L, 2L, 7000L)); // 구매자 먼저 제출
 
             // when - 판매자 6000 <= 구매자 7000 → 거래 성사 (sellerPrice로 체결)
-            negotiationService.submitFinalOffer(1L, 1L, 6000L);
+            negotiationService.submitFinalOffer(new NegotiationFinalOfferCommand(1L, 1L, 6000L));
 
             // then
             assertThat(negotiation.getStatus()).isEqualTo(NegotiationStatus.ACCEPTED);
@@ -254,10 +256,10 @@ class NegotiationServiceTest {
             given(waitingTicketRepository.findById(10L)).willReturn(Optional.of(sellerTicket));
             given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
 
-            negotiationService.submitFinalOffer(1L, 2L, 5000L); // 구매자: 5000
+            negotiationService.submitFinalOffer(new NegotiationFinalOfferCommand(1L, 2L, 5000L)); // 구매자: 5000
 
             // when - 판매자 8000 > 구매자 5000 → 불성사
-            negotiationService.submitFinalOffer(1L, 1L, 8000L);
+            negotiationService.submitFinalOffer(new NegotiationFinalOfferCommand(1L, 1L, 8000L));
 
             // then
             assertThat(negotiation.getStatus()).isEqualTo(NegotiationStatus.FAILED);
@@ -276,7 +278,7 @@ class NegotiationServiceTest {
             given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
 
             // when & then - 서비스가 sellerTicket 조회 후 도메인 메서드 호출 → FINAL_ROUND 아님 예외
-            assertThatThrownBy(() -> negotiationService.submitFinalOffer(1L, 2L, 7000L))
+            assertThatThrownBy(() -> negotiationService.submitFinalOffer(new NegotiationFinalOfferCommand(1L, 2L, 7000L)))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(NegotiationCode.NEGOTIATION_INVALID_STATE);
@@ -294,10 +296,10 @@ class NegotiationServiceTest {
             given(waitingTicketRepository.findById(10L)).willReturn(Optional.of(sellerTicket));
             given(waitingTicketRepository.findById(20L)).willReturn(Optional.of(buyerTicket));
 
-            negotiationService.submitFinalOffer(1L, 2L, 8000L); // 구매자 1차 제출
+            negotiationService.submitFinalOffer(new NegotiationFinalOfferCommand(1L, 2L, 8000L)); // 구매자 1차 제출
 
             // when & then - 구매자 재제출
-            assertThatThrownBy(() -> negotiationService.submitFinalOffer(1L, 2L, 7000L))
+            assertThatThrownBy(() -> negotiationService.submitFinalOffer(new NegotiationFinalOfferCommand(1L, 2L, 7000L)))
                     .isInstanceOf(BusinessException.class)
                     .extracting("baseCode")
                     .isEqualTo(NegotiationCode.ALREADY_SUBMITTED_FINAL_OFFER);

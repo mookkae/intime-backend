@@ -1,7 +1,7 @@
 package com.intime.presentation.waiting.api;
 
+import com.intime.application.waiting.dto.WaitingTicketInfo;
 import com.intime.presentation.waiting.dto.WaitingRegisterRequest;
-import com.intime.presentation.waiting.dto.WaitingTicketResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,7 +15,7 @@ public interface WaitingApi {
     @Operation(summary = "웨이팅 등록")
     @ApiResponse(responseCode = "201", description = "웨이팅 등록 성공")
     @PostMapping("/api/v1/stores/{storeId}/waiting")
-    ResponseEntity<WaitingTicketResponse> register(
+    ResponseEntity<WaitingTicketInfo> register(
             @PathVariable Long storeId,
             @Parameter(description = "회원 ID") @RequestHeader("X-Member-Id") Long memberId,
             @RequestBody WaitingRegisterRequest request
@@ -32,7 +32,7 @@ public interface WaitingApi {
     @Operation(summary = "다음 순번 호출")
     @ApiResponse(responseCode = "200", description = "호출 성공")
     @PostMapping("/api/v1/stores/{storeId}/waiting/call-next")
-    ResponseEntity<WaitingTicketResponse> callNext(@PathVariable Long storeId);
+    ResponseEntity<WaitingTicketInfo> callNext(@PathVariable Long storeId);
 
     @Operation(summary = "착석 확인")
     @ApiResponse(responseCode = "204", description = "착석 처리 성공")

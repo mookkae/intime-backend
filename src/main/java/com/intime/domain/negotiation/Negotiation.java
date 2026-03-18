@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
         name = "negotiation",
         uniqueConstraints = @UniqueConstraint(columnNames = "exchange_request_id"),
         indexes = {
-                @Index(name = "idx_negotiation_exchange_request", columnList = "exchange_request_id"),
                 @Index(name = "idx_negotiation_seller_ticket_status", columnList = "seller_ticket_id, status"),
                 @Index(name = "idx_negotiation_status_expires", columnList = "status, expires_at")
         }
