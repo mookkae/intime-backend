@@ -117,6 +117,11 @@ public class ExchangeRequestServiceImpl implements ExchangeRequestService {
         return exchangeRequestRepository.findByTradePostId(postId);
     }
 
+    @Override
+    public List<ExchangeRequest> getMyRequests(Long buyerId) {
+        return exchangeRequestRepository.findByBuyerIdOrderByCreatedAtDesc(buyerId);
+    }
+
     private TradePost getPost(Long postId) {
         return tradePostRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException(TradePostCode.TRADE_POST_NOT_FOUND));

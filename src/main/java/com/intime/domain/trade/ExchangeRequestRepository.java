@@ -12,6 +12,9 @@ public interface ExchangeRequestRepository extends JpaRepository<ExchangeRequest
     // 교환 신청 목록
     List<ExchangeRequest> findByTradePostId(Long tradePostId);
 
+    // 내 교환 신청 목록
+    List<ExchangeRequest> findByBuyerIdOrderByCreatedAtDesc(Long buyerId);
+
     // 교환 요청 만료
     List<ExchangeRequest> findByStatusAndExpiresAtBefore(ExchangeRequestStatus status, LocalDateTime now);
 

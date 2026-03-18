@@ -10,4 +10,8 @@ public interface TradePostService {
     void withdraw(Long postId, Long sellerId);
 
     List<TradePost> getStoreTradePosts(Long storeId);
+
+    List<TradePost> getMyTradePosts(Long sellerId);
+
+    List<TradePost> getOpenPostsByTicketIds(List<Long> ticketIds);
 }

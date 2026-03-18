@@ -43,4 +43,11 @@ public interface ExchangeRequestApi {
             @PathVariable Long requestId,
             @Parameter(description = "회원 ID") @RequestHeader("X-Member-Id") Long memberId
     );
+
+    @Operation(summary = "내 교환 신청 목록 조회")
+    @ApiResponse(responseCode = "200", description = "내 교환 신청 목록 조회 성공")
+    @GetMapping("/api/v1/exchange-requests/my")
+    ResponseEntity<List<ExchangeRequestResponse>> getMyRequests(
+            @Parameter(description = "회원 ID") @RequestHeader("X-Member-Id") Long memberId
+    );
 }

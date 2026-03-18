@@ -12,4 +12,6 @@ public interface ExchangeRequestService {
     void selectBuyerAndStartNegotiation(Long requestId, Long sellerId);
 
     List<ExchangeRequest> getPostRequests(Long postId);
+
+    List<ExchangeRequest> getMyRequests(Long buyerId);
 }

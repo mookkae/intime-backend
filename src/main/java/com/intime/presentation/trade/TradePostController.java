@@ -43,4 +43,13 @@ public class TradePostController implements TradePostApi {
                 .map(TradePostResponse::from)
                 .toList());
     }
+
+    @GetMapping("/api/v1/trade-posts/my")
+    public ResponseEntity<List<TradePostResponse>> getMyTradePosts(
+            @RequestHeader("X-Member-Id") Long memberId
+    ) {
+        return ResponseEntity.ok(tradePostService.getMyTradePosts(memberId).stream()
+                .map(TradePostResponse::from)
+                .toList());
+    }
 }

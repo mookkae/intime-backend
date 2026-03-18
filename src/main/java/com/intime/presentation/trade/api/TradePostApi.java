@@ -35,4 +35,11 @@ public interface TradePostApi {
     @ApiResponse(responseCode = "200", description = "게시글 목록 조회 성공")
     @GetMapping("/api/v1/stores/{storeId}/trade-posts")
     ResponseEntity<List<TradePostResponse>> getStoreTradePosts(@PathVariable Long storeId);
+
+    @Operation(summary = "내 판매 게시글 목록 조회")
+    @ApiResponse(responseCode = "200", description = "내 게시글 목록 조회 성공")
+    @GetMapping("/api/v1/trade-posts/my")
+    ResponseEntity<List<TradePostResponse>> getMyTradePosts(
+            @Parameter(description = "회원 ID") @RequestHeader("X-Member-Id") Long memberId
+    );
 }

@@ -42,8 +42,17 @@ public class WaitingQueryController implements WaitingQueryApi {
     public ResponseEntity<List<WaitingTicketResponse>> getMyTickets(
             @RequestHeader("X-Member-Id") Long memberId
     ) {
-        return ResponseEntity.ok(waitingQueryService.getMyTickets(memberId).stream()
-                .map(WaitingTicketResponse::from)
+        List<WaitingTicket> tickets = waitingQueryService.getMyTickets(memberId);
+
+        List<Long> ticketIds = tickets.stream().map(WaitingTicket::getId).toList();
+        Map<Long, TradePostInfo> tradePostByTicketId = tradePostService.getOpenPostsByTicketIds(ticketIds).stream()
+                .collect(Collectors.toMap(
+                        TradePost::getWaitingTicketId,
+                        tp -> new TradePostInfo(tp.getId(), tp.getPrice())
+                ));
+
+        return ResponseEntity.ok(tickets.stream()
+                .map(ticket -> WaitingTicketResponse.from(ticket, tradePostByTicketId.get(ticket.getId())))
                 .toList());
     }
 
